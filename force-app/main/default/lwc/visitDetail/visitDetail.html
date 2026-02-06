@@ -1,0 +1,67 @@
+<template>
+    <section class="page" role="dialog" aria-modal="true">
+        <div class="sheet">
+            <div class="sheet-header">
+                <button class="back-btn" onclick={handleClose} type="button" title="Back">
+                    <lightning-icon icon-name="utility:chevronleft" size="x-small"></lightning-icon>
+                    <span>Back</span>
+                </button>
+                <span class={statusBadgeClass}>{visitStatus}</span>
+            </div>
+
+            <div class="header-left">
+                <h3 class="title">{outletName}</h3>
+                <p class="address">{outletAddress}</p>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Visit Info</div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="label">Planned Start</span>
+                        <span class="value">{plannedStart}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Planned End</span>
+                        <span class="value">{plannedEnd}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Sequence</span>
+                        <span class="value">{sequenceLabel}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Actions</div>
+                <div class="actions">
+                    <button class="btn secondary" onclick={navigateToMap} type="button" disabled={mapDisabled}>
+                        Open Map
+                    </button>
+
+                    <template if:true={showCheckIn}>
+                        <button class="btn primary" onclick={handleCheckIn} type="button">
+                            Check In
+                        </button>
+                    </template>
+
+                    <template if:true={showCheckOut}>
+                        <button class="btn danger" onclick={handleCheckOut} type="button">
+                            Check Out
+                        </button>
+                    </template>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Activities</div>
+                <div class="activity-row">
+                    <button class="chip" type="button" data-action="Take Order" onclick={handleActivityClick}>Take Order</button>
+                    <button class="chip" type="button" data-action="Add Note" onclick={handleActivityClick}>Add Note</button>
+                    <button class="chip" type="button" data-action="Log Issue" onclick={handleActivityClick}>Log Issue</button>
+                </div>
+                <p class="section-sub">These can be wired to actions later.</p>
+            </div>
+        </div>
+    </section>
+</template>

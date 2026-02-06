@@ -1,0 +1,294 @@
+<!--
+/**
+ * BSD 3-Clause License
+ *
+ * Copyright (c) 2021, Avonni Labs, Inc.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * - Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ *
+ * - Neither the name of the copyright holder nor the names of its
+ *   contributors may be used to endorse or promote products derived from
+ *   this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+-->
+
+<template>
+    <!-- Stacked with exactly two avatars -->
+    <div if:true={isClassic} class={avatarGroupClass}>
+        <c-avonni-primitive-avatar
+            alternative-text={primaryItem.alternativeText}
+            fallback-icon-name={primaryItem.fallbackIconName}
+            initials={primaryItem.initials}
+            src={primaryItem.src}
+            variant={variant}
+            size={size}
+            status={primaryItem.status}
+            status-title={primaryItem.statusTitle}
+            status-position={primaryItem.statusPosition}
+            presence={primaryItem.presence}
+            presence-title={primaryItem.presenceTitle}
+            presence-position={primaryItem.presencePosition}
+            entity-icon-name={primaryItem.entityIconName}
+            entity-initials={primaryItem.entityInitials}
+            entity-src={primaryItem.entitySrc}
+            entity-variant={primaryItem.entityVariant}
+            entity-position={primaryItem.entityPosition}
+            actions={primaryItem.actions}
+            action-position={primaryItem.actionPosition}
+            action-menu-icon={primaryItem.actionMenuIcon}
+            data-element-id="avonni-primitive-avatar-classic-1"
+            data-group-name="avatar"
+            data-index="0"
+            class="
+                slds-avatar-grouped slds-avatar-grouped__primary
+                avonni-avatar-group__avatar_color-border
+            "
+            onclick={handleAvatarClick}
+            role="button"
+            onkeyup={handleAvatarClick}
+            tabindex="0"
+        ></c-avonni-primitive-avatar>
+        <c-avonni-primitive-avatar
+            alternative-text={secondaryItem.alternativeText}
+            fallback-icon-name={secondaryItem.fallbackIconName}
+            initials={secondaryItem.initials}
+            src={secondaryItem.src}
+            variant={variant}
+            size={size}
+            status={secondaryItem.status}
+            status-title={secondaryItem.statusTitle}
+            status-position={secondaryItem.statusPosition}
+            presence={secondaryItem.presence}
+            presence-title={secondaryItem.presenceTitle}
+            presence-position={secondaryItem.presencePosition}
+            entity-icon-name={secondaryItem.entityIconName}
+            entity-initials={secondaryItem.entityInitials}
+            entity-variant={secondaryItem.entityVariant}
+            entity-src={secondaryItem.entitySrc}
+            entity-position={secondaryItem.entityPosition}
+            data-element-id="avonni-primitive-avatar-classic-2"
+            data-group-name="avatar"
+            data-index="1"
+            class="
+                slds-avatar-grouped slds-avatar-grouped__secondary
+                avonni-avatar-group__avatar_color-border
+            "
+            onclick={handleAvatarClick}
+            role="button"
+            onkeyup={handleAvatarClick}
+            tabindex="0"
+        ></c-avonni-primitive-avatar>
+    </div>
+
+    <template if:false={isClassic}>
+        <span id="list-description" class="slds-assistive-text"
+            >Move between the items by using arrow keys.</span
+        >
+        <ul
+            class={avatarFlexWrapperClass}
+            aria-describedby="list-description"
+            tabindex="0"
+            data-element-id="ul"
+            onfocus={focusItem}
+            onkeydown={handleItemsKeyDown}
+        >
+            <template for:each={visibleItems} for:item="item" for:index="index">
+                <!-- Avatar item -->
+                <li
+                    key={generatedKey}
+                    class={avatarWrapperClass}
+                    tabindex="-1"
+                    data-element-id="li-visible"
+                    data-index={index}
+                    onclick={handleAvatarClick}
+                    onfocus={handleItemFocus}
+                >
+                    <c-avonni-avatar
+                        class={avatarInlineClass}
+                        role="button"
+                        actions={item.actions}
+                        action-menu-icon={item.actionMenuIcon}
+                        action-position={item.actionPosition}
+                        alternative-text={item.alternativeText}
+                        entity-icon-name={item.entityIconName}
+                        entity-initials={item.entityInitials}
+                        entity-position={item.entityPosition}
+                        entity-src={item.entitySrc}
+                        entity-title={item.entityTitle}
+                        entity-variant={item.entityVariant}
+                        fallback-icon-name={item.fallbackIconName}
+                        hide-avatar-details={isNotList}
+                        initials={item.initials}
+                        presence={item.presence}
+                        presence-title={item.presenceTitle}
+                        presence-position={item.presencePosition}
+                        primary-text={item.primaryText}
+                        secondary-text={item.secondaryText}
+                        size={size}
+                        src={item.src}
+                        status={item.status}
+                        status-title={item.statusTitle}
+                        status-position={item.statusPosition}
+                        tags={item.tags}
+                        tertiary-text={item.tertiaryText}
+                        variant={variant}
+                        data-group-name="avatar"
+                        data-element-id="avonni-avatar"
+                        data-index={index}
+                    >
+                    </c-avonni-avatar>
+                </li>
+            </template>
+            <!-- Show more button -->
+            <li if:true={showMoreButton} class={showMoreSectionClass}>
+                <div
+                    class="
+                        slds-dropdown-trigger slds-dropdown-trigger_click
+                        slds-is-open
+                    "
+                    data-element-id="div-show-more-button-wrapper"
+                    onkeydown={stopPropagation}
+                >
+                    <div if:true={isNotList} class={avatarWrapperClass}>
+                        <c-avonni-primitive-avatar
+                            class={showMoreAvatarClass}
+                            alternative-text="Show more"
+                            fallback-icon-name="standard:macros"
+                            initials={showMoreInitials}
+                            role="button"
+                            size={size}
+                            tabindex="0"
+                            variant={variant}
+                            data-element-id="avonni-primitive-avatar-show-more-dropdown"
+                            data-group-name="avatar"
+                            data-show-more-button
+                            onclick={handleToggleShowHiddenItems}
+                            onkeydown={handleShowHiddenItemsButtonKeyDown}
+                        ></c-avonni-primitive-avatar>
+                    </div>
+                    <lightning-button
+                        if:false={isNotList}
+                        class="
+                            slds-m-top_small
+                            slds-m-bottom_small
+                            slds-m-left_small
+                            slds-show
+                            avonni-avatar-group__list-button
+                        "
+                        icon-name={currentListButtonIcon}
+                        icon-position={currentListButtonPosition}
+                        label={currentlistButtonLabel}
+                        tabindex="0"
+                        variant={listButtonVariant}
+                        data-element-id="lightning-button"
+                        data-show-more-button
+                        onclick={handleToggleShowHiddenItems}
+                    ></lightning-button>
+                </div>
+                <!-- Hidden items -->
+                <div
+                    if:true={showHiddenItems}
+                    class={hiddenListClass}
+                    role="dialog"
+                    aria-labelledby="show-more-label"
+                    data-element-id="div-hidden-items-popover"
+                    onfocusin={handleHiddenItemsFocusIn}
+                    onfocusout={handleHiddenItemsFocusOut}
+                    onscroll={handleHiddenItemsScroll}
+                >
+                    <span class="slds-assistive-text" id="show-more-label"
+                        >Expanded items</span
+                    >
+                    <ul aria-orientation="vertical">
+                        <template for:each={hiddenItems} for:item="item">
+                            <li
+                                key={generatedKey}
+                                class="
+                                    avonni-avatar-group__hidden-avatar-container
+                                    slds-p-vertical_x-small
+                                    slds-p-horizontal_small
+                                "
+                                data-index={item.index}
+                                tabindex="-1"
+                                data-element-id="li-hidden"
+                                onclick={handleAvatarClick}
+                            >
+                                <c-avonni-avatar
+                                    role="button"
+                                    action-menu-icon={item.actionMenuIcon}
+                                    action-position={item.actionPosition}
+                                    actions={item.actions}
+                                    alternative-text={item.alternativeText}
+                                    entity-icon-name={item.entityIconName}
+                                    entity-initials={item.entityInitials}
+                                    entity-position={item.entityPosition}
+                                    entity-src={item.entitySrc}
+                                    entity-variant={item.entityVariant}
+                                    fallback-icon-name={item.fallbackIconName}
+                                    initials={item.initials}
+                                    presence={item.presence}
+                                    presence-position={item.presencePosition}
+                                    presence-title={item.presenceTitle}
+                                    primary-text={item.primaryText}
+                                    secondary-text={item.secondaryText}
+                                    size={size}
+                                    src={item.src}
+                                    status={item.status}
+                                    status-position={item.statusPosition}
+                                    status-title={item.statusTitle}
+                                    tags={item.tags}
+                                    tertiary-text={item.tertiaryText}
+                                    variant={variant}
+                                    data-index={item.index}
+                                ></c-avonni-avatar>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+            </li>
+            <!-- Action button -->
+            <li
+                if:true={actionIconName}
+                class={actionButtonWrapperClass}
+                onkeydown={stopPropagation}
+            >
+                <button
+                    type="button"
+                    onclick={handleActionClick}
+                    class={actionButtonClass}
+                >
+                    <lightning-icon
+                        icon-name={actionIconName}
+                        size={actionButtonIconSize}
+                        class="
+                            slds-button slds-button_icon
+                            slds-current-color
+                            avonni-avatar-group__action-button
+                        "
+                        data-element-id="lightning-icon"
+                    ></lightning-icon>
+                </button>
+            </li>
+        </ul>
+    </template>
+</template>

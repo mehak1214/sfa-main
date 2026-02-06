@@ -1,0 +1,145 @@
+<!--
+/**
+ * BSD 3-Clause License
+ *
+ * Copyright (c) 2021, Avonni Labs, Inc.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * - Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ *
+ * - Neither the name of the copyright holder nor the names of its
+ *   contributors may be used to endorse or promote products derived from
+ *   this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+-->
+
+<template>
+    <span class={computedLabelClass} data-element-id="span-label">
+        <template if:true={required}>
+            <abbr class="slds-required" title="Required">*</abbr>
+        </template>
+        {computedLabel}
+    </span>
+    <lightning-helptext
+        if:true={fieldLevelHelp}
+        content={fieldLevelHelp}
+        data-element-id="lightning-helptext"
+    ></lightning-helptext>
+
+    <div class="slds-form-element__control">
+        <div class={computedComboboxGroupClass}>
+            <!-- Scopes -->
+            <c-avonni-primitive-combobox
+                if:true={showScopes}
+                class="
+                    slds-combobox_object-switcher
+                    slds-combobox-addon_start
+                    avonni-combobox__scopes
+                "
+                disabled={disabled}
+                dropdown-alignment={dropdownAlignment}
+                dropdown-length={dropdownLength}
+                groups={scopesGroups}
+                hide-clear-icon
+                multi-level-groups={multiLevelGroups}
+                options={scopes}
+                read-only={readOnly}
+                value={scopesValue}
+                data-element-id="avonni-primitive-combobox-scopes"
+                onchange={handleScopeChange}
+            ></c-avonni-primitive-combobox>
+
+            <!-- Main dropdown -->
+            <c-avonni-primitive-combobox
+                class={computedMainComboboxClass}
+                actions={actions}
+                allow-search={allowSearch}
+                back-action={backAction}
+                disabled={disabled}
+                dropdown-alignment={dropdownAlignment}
+                dropdown-length={dropdownLength}
+                groups={groups}
+                label={computedLabel}
+                is-loading={isLoading}
+                is-multi-select={isMultiSelect}
+                loading-state-alternative-text={loadingStateAlternativeText}
+                message-when-bad-input={messageWhenBadInput}
+                message-when-value-missing={messageWhenValueMissing}
+                multi-level-groups={multiLevelGroups}
+                name={name}
+                options={options}
+                placeholder={placeholder}
+                read-only={readOnly}
+                remove-selected-options={removeSelectedOptions}
+                required={required}
+                search={search}
+                hide-clear-icon={hideClearIcon}
+                value={value}
+                variant="label-hidden"
+                data-element-id="avonni-primitive-combobox-main"
+                onblur={handleBlur}
+                onfocus={handleFocus}
+                onopen={handleOpen}
+                onsearch={handleSearch}
+                onactionclick={handleActionClick}
+                onbackactionclick={handleBackActionClick}
+                onchange={handleChange}
+                onlevelchange={handleLevelChange}
+                onprivateselect={handlePrivateSelect}
+            ></c-avonni-primitive-combobox>
+        </div>
+
+        <!-- Selected options -->
+        <div
+            if:true={showHorizontalSelectedOptions}
+            class="slds-p-bottom_xx-small"
+        >
+            <c-avonni-pill-container
+                actions={selectedOptionsActions}
+                alternative-text={selectedOptionsAriaLabel}
+                items={normalizedSelectedOptions}
+                sortable={sortableSelectedOptions}
+                data-element-id="avonni-pill-container"
+                onactionclick={handleRemovePill}
+                onreorder={handleReorderSelectedOptions}
+            ></c-avonni-pill-container>
+        </div>
+
+        <div
+            if:true={showVerticalSelectedOptions}
+            class="slds-p-vertical_xx-small"
+        >
+            <c-avonni-list
+                actions={selectedOptionsActions}
+                alternative-text={selectedOptionsAriaLabel}
+                divider="around"
+                items={normalizedSelectedOptions}
+                sortable={sortableSelectedOptions}
+                sortable-icon-name={sortableSelectedOptionsIconName}
+                sortable-icon-position="left"
+                data-element-id="avonni-list"
+                onactionclick={handleRemoveListItem}
+                onreorder={handleReorderSelectedOptions}
+            ></c-avonni-list>
+        </div>
+    </div>
+</template>

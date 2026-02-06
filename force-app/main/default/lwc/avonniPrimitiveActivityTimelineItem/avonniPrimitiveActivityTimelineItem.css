@@ -1,0 +1,164 @@
+/**
+ * BSD 3-Clause License
+ *
+ * Copyright (c) 2021, Avonni Labs, Inc.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * - Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ *
+ * - Neither the name of the copyright holder nor the names of its
+ *   contributors may be used to endorse or promote products derived from
+ *   this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+.slds-timeline__icon.avonni-timeline-item__bullet {
+    display: inline-block;
+    position: relative;
+    margin-top: 7px;
+    margin-left: 8px;
+    margin-right: 8px;
+    width: 12px;
+    height: 12px;
+    border-radius: 100px;
+    background-color: #c9c7c5;
+    box-shadow: 0 0 0 2px white;
+}
+
+.avonni-primitive-activity-timeline-item__bullet-xx-small {
+    left: -5px;
+}
+
+.avonni-primitive-activity-timeline-item__bullet-x-small {
+    left: -4px;
+}
+
+.avonni-primitive-activity-timeline-item__bullet-medium {
+    left: 3.95px;
+}
+
+.avonni-primitive-activity-timeline-item__bullet-large {
+    left: 12px;
+}
+
+.slds-timeline__icon.avonni-timeline-item__bullet.avonni-timeline-item__active-bullet::after {
+    position: absolute;
+    content: '';
+    top: -4px;
+    left: -4px;
+    width: 16px;
+    height: 16px;
+    border-radius: 100px;
+    background-color: white;
+    border: #1b96ff solid 4.5px;
+    box-shadow: 0 0 0 4px white;
+}
+
+.avonni-activity-timeline-item-header {
+    flex-wrap: wrap;
+}
+
+.avonni-activity-timeline-item-header-date {
+    margin-left: auto;
+}
+
+.slds-timeline__item_expandable:before {
+    content: '';
+    background: var(--line-color);
+    height: 100%;
+    width: 2px;
+    position: absolute;
+    top: 11px;
+    bottom: 0;
+    margin-left: 1px;
+}
+
+.avonni-primitive-activity-timeline-item__action-icon_xx-small {
+    margin: -0.1rem 0 0 -0.5rem;
+    transform: scale(0.55);
+}
+
+.avonni-primitive-activity-timeline-item__action-icon_x-small {
+    margin: -0.15rem 0 0 -0.5rem;
+    transform: scale(0.6);
+}
+
+.avonni-primitive-activity-timeline-item__action-icon_small {
+    margin: -0.3rem 0 0 -0.5rem;
+    transform: scale(0.7);
+}
+
+.avonni-primitive-activity-timeline-item__action-icon_medium {
+    margin: -0.5rem 0 0 -0.5rem;
+    transform: scale(0.8);
+}
+
+.avonni-primitive-activity-timeline-item__action-icon_large {
+    margin: -0.7rem 0 0 -0.5rem;
+    transform: scale(0.85);
+}
+
+.avonni-primitive-activity-timeline-item__icon_xx-small {
+    margin-top: 0.4rem;
+}
+
+.avonni-primitive-activity-timeline-item__icon_x-small {
+    margin-top: 0.35rem;
+}
+
+.avonni-primitive-activity-timeline-item__icon_small {
+    margin-top: 0.2rem;
+}
+
+.avonni-primitive-activity-timeline-item__icon_medium {
+    margin-top: -0.15rem;
+}
+
+.avonni-primitive-activity-timeline-item__icon_xx-small:before {
+    left: 1.95rem;
+}
+
+.avonni-primitive-activity-timeline-item__icon_x-small:before {
+    left: 2rem;
+}
+
+.avonni-primitive-activity-timeline-item__icon_small:before {
+    left: 2.25rem;
+}
+
+.avonni-primitive-activity-timeline-item__icon_medium:before {
+    left: 2.5rem;
+}
+
+.avonni-primitive-activity-timeline-item__icon_large:before {
+    left: 3rem;
+}
+
+.avonni-primitive-activity-timeline-item__no-fields_margin {
+    margin-left: 24px;
+}
+
+.avonni-primitive-activity-timeline-item__fields-container {
+    background-color: rgb(243, 243, 243);
+    border-radius: 0.25rem;
+    border: 1px solid rgb(229, 229, 229);
+    padding: 0rem 1rem 1rem 1rem;
+}

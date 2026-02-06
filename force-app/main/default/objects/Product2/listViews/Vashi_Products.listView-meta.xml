@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Vashi_Products</fullName>
+    <columns>PRODUCT2.NAME</columns>
+    <columns>PRODUCT2.SKU</columns>
+    <columns>PRODUCT2.FAMILY</columns>
+    <columns>isSample__c</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>Is_Vashi_Product__c</field>
+        <operation>equals</operation>
+        <value>1</value>
+    </filters>
+    <label>Vashi Products</label>
+</ListView>

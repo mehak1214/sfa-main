@@ -1,0 +1,622 @@
+<!--
+/**
+ * BSD 3-Clause License
+ *
+ * Copyright (c) 2021, Avonni Labs, Inc.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * - Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ *
+ * - Neither the name of the copyright holder nor the names of its
+ *   contributors may be used to endorse or promote products derived from
+ *   this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+-->
+
+<template>
+    <!-- Toolbar -->
+    <div
+        if:false={hideToolbar}
+        class="slds-grid slds-p-bottom_medium slds-grid_vertical-align-center"
+        data-element-id="div-toolbar"
+    >
+        <!-- Toolbar time spans -->
+        <lightning-button-group
+            if:true={showToolbarTimeSpans}
+            onclick={handleToolbarTimeSpanClick}
+        >
+            <template for:each={toolbarTimeSpanButtons} for:item="button">
+                <lightning-button
+                    key={button.name}
+                    disabled={showEmptyTimelineMessage}
+                    label={button.label}
+                    variant={button.variant}
+                    value={button.name}
+                    data-element-id="lightning-button-toolbar-time-span"
+                ></lightning-button>
+            </template>
+            <c-avonni-button-menu
+                if:true={toolbarTimeSpanMenuItems.length}
+                disabled={showEmptyTimelineMessage}
+                icon-name="utility:down"
+                variant="border-filled"
+                data-element-id="avonni-button-menu-toolbar-spans"
+            >
+                <template
+                    for:each={toolbarTimeSpanMenuItems}
+                    for:item="menuItem"
+                >
+                    <lightning-menu-item
+                        key={menuItem.name}
+                        checked={menuItem.checked}
+                        label={menuItem.label}
+                        value={menuItem.name}
+                        data-element-id="lightning-menu-item-toolbar-time-span"
+                    ></lightning-menu-item>
+                </template>
+            </c-avonni-button-menu>
+        </lightning-button-group>
+
+        <!-- Toolbar calendar selector -->
+        <div
+            class={toolbarCalendarWrapperClass}
+            onfocusin={handleToolbarCalendarFocusin}
+            onfocusout={handleToolbarCalendarFocusout}
+        >
+            <button
+                class="
+                    slds-truncate slds-button
+                    slds-text-heading_small
+                    avonni-scheduler__toolbar-date-range
+                "
+                disabled={showEmptyTimelineMessage}
+                type="button"
+                data-element-id="button-toolbar-calendar"
+                onclick={handleToggleToolbarCalendar}
+            >
+                <span
+                    class="slds-truncate avonni-scheduler__"
+                    title={visibleIntervalLabel}
+                    data-element-id="span-visible-interval-label"
+                    >{visibleIntervalLabel}</span
+                >
+                <span>
+                    <lightning-icon
+                        class="slds-button__icon slds-button__icon_right"
+                        aria-hidden="true"
+                        icon-name="utility:chevrondown"
+                        size="xx-small"
+                    ></lightning-icon>
+                </span>
+            </button>
+            <div
+                if:true={showToolbarCalendar}
+                class="slds-dropdown slds-dropdown_center"
+            >
+                <lightning-focus-trap>
+                    <c-avonni-calendar
+                        disabled-dates={toolbarCalendarDisabledDates}
+                        timezone={timezone}
+                        value={selectedDate}
+                        data-element-id="calendar-toolbar"
+                        onchange={handleToolbarCalendarChange}
+                        onnavigate={handleToolbarCalendarNavigate}
+                    ></c-avonni-calendar>
+                </lightning-focus-trap>
+            </div>
+        </div>
+
+        <!-- Toolbar next/today/previous navigation -->
+        <div class="slds-grid">
+            <lightning-button-icon
+                class="avonni-scheduler__toolbar-button-group_first"
+                disabled={showEmptyTimelineMessage}
+                icon-name="utility:chevronleft"
+                variant="border-filled"
+                data-element-id="lightning-button-icon-toolbar-prev"
+                onclick={handleToolbarPrevClick}
+            ></lightning-button-icon>
+            <lightning-button
+                class="avonni-scheduler__toolbar-button-group_middle"
+                disabled={showEmptyTimelineMessage}
+                label="Today"
+                data-element-id="lightning-button-icon-toolbar-today"
+                onclick={handleToolbarTodayClick}
+            ></lightning-button>
+            <lightning-button-icon
+                class="avonni-scheduler__toolbar-button-group_last"
+                disabled={showEmptyTimelineMessage}
+                icon-name="utility:chevronright"
+                variant="border-filled"
+                data-element-id="lightning-button-icon-toolbar-next"
+                onclick={handleToolbarNextClick}
+            ></lightning-button-icon>
+        </div>
+
+        <div class="slds-m-left_x-small slds-grid">
+            <!-- Displays -->
+            <c-avonni-button-menu
+                if:true={moreThanOneDisplay}
+                class={displayButtonClass}
+                label={computedSelectedDisplay.label}
+                menu-alignment="right"
+                data-element-id="avonni-button-menu-toolbar-display"
+                onselect={handleDisplaySelect}
+            >
+                <template for:each={displayOptions} for:item="displayOption">
+                    <lightning-menu-item
+                        key={displayOption.value}
+                        checked={displayOption.checked}
+                        icon-name={displayOption.iconName}
+                        label={displayOption.label}
+                        value={displayOption.value}
+                        data-element-id="lightning-menu-item-display"
+                    ></lightning-menu-item>
+                </template>
+            </c-avonni-button-menu>
+
+            <!-- Actions -->
+            <lightning-button
+                if:true={oneToolbarActionButton}
+                class={toolbarActionButtonClass}
+                icon-name={oneToolbarActionButton.iconName}
+                label={oneToolbarActionButton.label}
+                value={oneToolbarActionButton.name}
+                onclick={handleToolbarActionSelect}
+            ></lightning-button>
+            <lightning-button-icon
+                if:true={oneToolbarActionButtonIcon}
+                class={toolbarActionButtonClass}
+                alternative-text={oneToolbarActionButtonIcon.name}
+                icon-name={oneToolbarActionButtonIcon.iconName}
+                value={oneToolbarActionButtonIcon.name}
+                variant="border-filled"
+                onclick={handleToolbarActionSelect}
+            ></lightning-button-icon>
+            <c-avonni-button-menu
+                if:true={moreThanOneToolbarAction}
+                class={toolbarActionButtonClass}
+                alternative-text="Actions"
+                menu-alignment="right"
+                onselect={handleToolbarActionSelect}
+            >
+                <template for:each={toolbarActions} for:item="action">
+                    <lightning-menu-item
+                        key={action.name}
+                        icon-name={action.iconName}
+                        label={action.label}
+                        value={action.name}
+                    ></lightning-menu-item>
+                </template>
+            </c-avonni-button-menu>
+        </div>
+
+        <!-- Resources filter -->
+        <c-avonni-filter-menu
+            if:true={showResourceFilter}
+            class="slds-m-left_x-small"
+            alternative-text="Select resources"
+            dropdown-alignment="right"
+            hide-apply-reset-buttons
+            hide-selected-items
+            icon-name="utility:filterList"
+            title="Select resources"
+            type-attributes={resourceFilterTypeAttributes}
+            value={selectedResources}
+            data-element-id="avonni-filter-menu-resources"
+            onselect={handleToolbarResourceSelect}
+        ></c-avonni-filter-menu>
+    </div>
+
+    <div if:false={isLoading} onscheduleclick={handleScheduleClick}>
+        <c-avonni-primitive-scheduler-timeline
+            if:true={showTimeline}
+            class="avonni-scheduler__schedule slds-show"
+            available-days-of-the-week={availableDaysOfTheWeek}
+            available-months={availableMonths}
+            available-time-frames={availableTimeFrames}
+            available-time-spans={timeSpans}
+            collapse-disabled={collapseDisabled}
+            columns={columns}
+            date-format={dateFormat}
+            events={computedEvents}
+            events-labels={eventsLabels}
+            events-theme={eventsTheme}
+            loading-state-alternative-text={loadingStateAlternativeText}
+            new-event-title={dialogLabels.newEventTitle}
+            read-only={readOnly}
+            recurrent-edit-modes={recurrentEditModes}
+            resize-column-disabled={resizeColumnDisabled}
+            resources={computedResources}
+            selected-resources={selectedResources}
+            start={computedStart}
+            time-span={currentTimeSpan}
+            timezone={timezone}
+            orientation={variant}
+            zoom-to-fit={zoomToFit}
+            data-element-id="avonni-primitive-scheduler-timeline"
+            onemptyspotcontextmenu={handleEmptySpotContextMenu}
+            oneventchange={handleEventChange}
+            oneventcontextmenu={handleEventContextMenu}
+            oneventcreate={handleEventCreate}
+            oneventmouseenter={handleEventMouseEnter}
+            oneventmouseleave={handleEventMouseLeave}
+            onhidepopovers={handleHidePopovers}
+            oneventselect={handleEventSelect}
+            onopeneditdialog={handleOpenEditDialog}
+            onopenrecurrencedialog={handleOpenRecurrenceDialog}
+            onvisibleintervalchange={handleVisibleIntervalChange}
+        ></c-avonni-primitive-scheduler-timeline>
+
+        <c-avonni-scoped-notification
+            if:true={showEmptyTimelineMessage}
+            icon-name="utility:filterList"
+            icon-size="small"
+            title="Select a resource to show the timeline."
+            data-element-id="avonni-scoped-notification-empty-timeline"
+        ></c-avonni-scoped-notification>
+
+        <c-avonni-primitive-scheduler-calendar
+            if:true={isCalendar}
+            class="
+                avonni-scheduler__calendar avonni-scheduler__schedule
+                slds-is-relative slds-show
+            "
+            available-days-of-the-week={availableDaysOfTheWeek}
+            available-months={availableMonths}
+            available-time-frames={availableTimeFrames}
+            available-time-spans={timeSpans}
+            collapse-disabled={collapseDisabled}
+            date-format={dateFormat}
+            events={computedEvents}
+            events-labels={eventsLabels}
+            events-theme={eventsTheme}
+            hide-resources-filter={hideResourcesFilter}
+            hide-side-panel={hideSidePanel}
+            loading-state-alternative-text={loadingStateAlternativeText}
+            read-only={readOnly}
+            resize-column-disabled={resizeColumnDisabled}
+            resources={computedResources}
+            selected-date={selectedDate}
+            selected-resources={selectedResources}
+            side-panel-position={sidePanelPosition}
+            time-span={currentTimeSpan}
+            timezone={timezone}
+            zoom-to-fit={zoomToFit}
+            data-element-id="avonni-primitive-scheduler-calendar"
+            ondatechange={handleSelectedDateChange}
+            onemptyspotcontextmenu={handleEmptySpotContextMenu}
+            oneventchange={handleEventChange}
+            oneventcontextmenu={handleEventContextMenu}
+            oneventcreate={handleEventCreate}
+            oneventselect={handleEventSelect}
+            oneventmouseenter={handleEventMouseEnter}
+            oneventmouseleave={handleEventMouseLeave}
+            onhidepopovers={handleHidePopovers}
+            onopeneditdialog={handleOpenEditDialog}
+            onopenrecurrencedialog={handleOpenRecurrenceDialog}
+            onresourceselect={handleResourceSelect}
+            onvisibleintervalchange={handleVisibleIntervalChange}
+        ></c-avonni-primitive-scheduler-calendar>
+
+        <c-avonni-primitive-scheduler-agenda
+            if:true={isAgenda}
+            class="avonni-scheduler__schedule slds-show"
+            available-days-of-the-week={availableDaysOfTheWeek}
+            available-months={availableMonths}
+            available-time-frames={availableTimeFrames}
+            collapse-disabled={collapseDisabled}
+            date-format={dateFormat}
+            events={computedEvents}
+            events-labels={eventsLabels}
+            hide-resources-filter={hideResourcesFilter}
+            hide-side-panel={hideSidePanel}
+            read-only={readOnly}
+            resize-column-disabled={resizeColumnDisabled}
+            resources={computedResources}
+            selected-date={selectedDate}
+            selected-resources={selectedResources}
+            side-panel-position={sidePanelPosition}
+            time-span={currentTimeSpan}
+            timezone={timezone}
+            data-element-id="avonni-primitive-scheduler-agenda"
+            ondatechange={handleSelectedDateChange}
+            oneventselect={handleEventSelect}
+            onemptyspotcontextmenu={handleEmptySpotContextMenu}
+            oneventchange={handleEventChange}
+            oneventcontextmenu={handleEventContextMenu}
+            oneventcreate={handleEventCreate}
+            oneventmouseenter={handleEventMouseEnter}
+            oneventmouseleave={handleEventMouseLeave}
+            onhidepopovers={handleHidePopovers}
+            onopeneditdialog={handleOpenEditDialog}
+            onopenrecurrencedialog={handleOpenRecurrenceDialog}
+            onresourceselect={handleResourceSelect}
+            onvisibleintervalchange={handleVisibleIntervalChange}
+        ></c-avonni-primitive-scheduler-agenda>
+    </div>
+
+    <!-- Loading spinner -->
+    <lightning-spinner
+        if:true={isLoading}
+        alternative-text={loadingStateAlternativeText}
+        size="large"
+        data-element-id="lightning-spinner"
+    ></lightning-spinner>
+
+    <!-- Event detail popover -->
+    <div
+        if:true={showDetailPopover}
+        class="slds-is-absolute slds-popover slds-popover_medium"
+        role="tooltip"
+        aria-live="polite"
+        data-element-id="div-detail-popover"
+        onkeyup={handleDetailPopoverKeyUp}
+        onmouseenter={handleDetailPopoverMouseEnter}
+        onmouseleave={handleDetailPopoverMouseLeave}
+    >
+        <lightning-focus-trap>
+            <lightning-button-icon
+                class="
+                    slds-is-absolute
+                    avonni-scheduler__detail-popover-close-button
+                "
+                alternative-text="Close popover"
+                icon-name="utility:close"
+                size="small"
+                variant="bare"
+                data-element-id="lightning-button-icon-detail-popover-close-button"
+                onclick={hideDetailPopover}
+            ></lightning-button-icon>
+
+            <div class="slds-popover__body">
+                <div class="slds-m-bottom_small slds-text-heading_small">
+                    {selection.occurrence.title}
+                </div>
+                <div class="slds-grid slds-wrap slds-gutters_x-small">
+                    <template for:each={detailPopoverFields} for:item="field">
+                        <div
+                            key={field.key}
+                            class="
+                                slds-col
+                                slds-size_1-of-2
+                                slds-p-vertical_xx-small
+                            "
+                        >
+                            <c-avonni-output-data
+                                label={field.label}
+                                type={field.type}
+                                type-attributes={field.typeAttributes}
+                                value={field.value}
+                                variant={field.variant}
+                                data-element-id="avonni-output-data-detail-popover-field"
+                            ></c-avonni-output-data>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <div
+                if:true={computedContextMenuEvent.length}
+                class="slds-popover__footer slds-text-align_right"
+            >
+                <lightning-button-group>
+                    <template for:each={firstEventActions} for:item="action">
+                        <lightning-button
+                            key={action.name}
+                            label={action.label}
+                            icon-name={action.iconName}
+                            name={action.name}
+                            onclick={handleActionSelect}
+                        ></lightning-button>
+                    </template>
+                    <lightning-button-menu
+                        if:true={lastEventActions.length}
+                        alternative-text="More actions"
+                        menu-alignment="right"
+                        variant="border-filled"
+                        onselect={handleActionSelect}
+                    >
+                        <template for:each={lastEventActions} for:item="action">
+                            <lightning-menu-item
+                                key={action.name}
+                                label={action.label}
+                                prefix-icon-name={action.iconName}
+                                value={action.name}
+                            ></lightning-menu-item>
+                        </template>
+                    </lightning-button-menu>
+                </lightning-button-group>
+            </div>
+        </lightning-focus-trap>
+    </div>
+
+    <!-- Event context menu -->
+    <c-avonni-primitive-dropdown-menu
+        if:true={contextMenuActions.length}
+        class="slds-is-fixed avonni-scheduler__context-menu"
+        show={showContextMenu}
+        items={contextMenuActions}
+        data-element-id="avonni-primitive-dropdown-menu"
+        onclose={hideContextMenu}
+        onprivateselect={handleActionSelect}
+    ></c-avonni-primitive-dropdown-menu>
+
+    <!-- Recurrent event edit choice dialog -->
+    <c-avonni-dialog
+        if:true={showRecurrenceDialog}
+        show-dialog={showRecurrenceDialog}
+        title={editDialogTitle}
+        size="small"
+        data-element-id="avonni-dialog"
+        onclosedialog={handleCloseRecurrenceDialog}
+    >
+        <p
+            class="slds-m-bottom_medium slds-text-align_center"
+            data-element-id="p-recurrence-dialog-description"
+        >
+            {dialogLabels.editRecurrent}
+        </p>
+        <div slot="footer">
+            <lightning-button
+                class="slds-m-right_xx-small"
+                label={dialogLabels.cancelButton}
+                data-element-id="lightning-button-recurrence-dialog-cancel"
+                onclick={handleCloseRecurrenceDialog}
+            ></lightning-button>
+            <lightning-button
+                class="slds-m-right_xx-small"
+                label={dialogLabels.saveOneRecurrent}
+                variant="brand"
+                value="one"
+                data-element-id="lightning-button-recurrence-dialog-save-one"
+                onclick={handleSaveEvent}
+            ></lightning-button>
+            <lightning-button
+                class="slds-m-right_xx-small"
+                label={dialogLabels.saveAllRecurrent}
+                variant="brand"
+                value="all"
+                data-element-id="lightning-button-recurrence-dialog-save-all"
+                onclick={handleSaveEvent}
+                onkeydown={handleEditSaveKeyDown}
+            ></lightning-button>
+        </div>
+    </c-avonni-dialog>
+
+    <!-- Delete confirmation dialog -->
+    <c-avonni-dialog
+        if:true={showDeleteConfirmationDialog}
+        show-dialog={showDeleteConfirmationDialog}
+        title={dialogLabels.deleteTitle}
+        size="small"
+        data-element-id="avonni-dialog"
+        onclosedialog={handleCloseDeleteConfirmationDialog}
+    >
+        <p
+            class="slds-m-bottom_medium slds-text-align_center"
+            data-element-id="lightning-button-delete-description"
+        >
+            {dialogLabels.deleteMessage}
+        </p>
+        <div slot="footer">
+            <lightning-button
+                class="slds-m-right_xx-small"
+                label={dialogLabels.cancelButton}
+                data-element-id="lightning-button-delete-dialog-cancel"
+                onclick={handleCloseDeleteConfirmationDialog}
+            ></lightning-button>
+            <lightning-button
+                class="slds-m-right_xx-small"
+                label={dialogLabels.deleteButton}
+                variant="brand"
+                data-element-id="lightning-button-delete-dialog-delete"
+                onclick={handleEventDelete}
+            ></lightning-button>
+        </div>
+    </c-avonni-dialog>
+
+    <!-- Event edit dialog -->
+    <c-avonni-dialog
+        if:true={showEditDialog}
+        show-dialog={showEditDialog}
+        title={editDialogTitle}
+        size="small"
+        data-element-id="avonni-dialog"
+        onclosedialog={handleCloseEditDialog}
+    >
+        <lightning-input
+            label={dialogLabels.title}
+            value={selection.occurrence.title}
+            name="title"
+            class="slds-m-bottom_small"
+            autocomplete="off"
+            required
+            data-element-id="lightning-input-event-title"
+            onchange={handleEventTitleChange}
+        ></lightning-input>
+        <div class="slds-m-bottom_small">
+            <c-avonni-input-date-range
+                label-start-date={dialogLabels.from}
+                start-date={selection.occurrence.from}
+                end-date={selection.occurrence.to}
+                label-end-date={dialogLabels.to}
+                timezone={timezone}
+                type="datetime"
+                required
+                variant="label-hidden"
+                data-element-id="avonni-input-date-range-event-dates"
+                onchange={handleEventDateChange}
+            ></c-avonni-input-date-range>
+        </div>
+        <div class="slds-m-bottom_small">
+            <c-avonni-combobox
+                if:true={resourceOptions.length}
+                allow-search
+                is-multi-select
+                label={dialogLabels.resources}
+                value={selection.occurrence.resourceNames}
+                options={resourceOptions}
+                remove-selected-options
+                dropdown-length="5-items"
+                required
+                data-element-id="avonni-combobox-event-resources"
+                onchange={handleEventResourceNamesChange}
+            ></c-avonni-combobox>
+        </div>
+        <div slot="footer" class="slds-text-align_right">
+            <lightning-button
+                class="slds-m-right_xx-small"
+                label={dialogLabels.cancelButton}
+                data-element-id="lightning-button-cancel-edit"
+                onclick={handleCloseEditDialog}
+            ></lightning-button>
+            <lightning-button
+                if:false={showRecurrenceSaveOptions}
+                label={dialogLabels.saveButton}
+                variant="brand"
+                data-element-id="lightning-button-save-edit"
+                onclick={handleSaveEvent}
+                onkeydown={handleEditSaveKeyDown}
+            ></lightning-button>
+            <lightning-button-menu
+                if:true={showRecurrenceSaveOptions}
+                label={dialogLabels.saveButton}
+                menu-alignment="bottom-right"
+                data-element-id="lightning-button-menu-save-edit"
+                onselect={handleSaveEvent}
+                onkeydown={handleEditSaveKeyDown}
+            >
+                <lightning-menu-item
+                    value="one"
+                    label={dialogLabels.saveOneRecurrent}
+                    data-element-id="lightning-menu-item-save-one"
+                ></lightning-menu-item>
+                <lightning-menu-item
+                    value="all"
+                    label={dialogLabels.saveAllRecurrent}
+                    data-element-id="lightning-menu-item-save-all"
+                ></lightning-menu-item>
+            </lightning-button-menu>
+        </div>
+    </c-avonni-dialog>
+</template>

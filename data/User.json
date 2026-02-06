@@ -1,0 +1,70 @@
+{
+    "records": [
+        {
+            "attributes": {
+                "type": "User",
+                "referenceId": "UserRef1"
+            }
+        },
+        {
+            "attributes": {
+                "type": "User",
+                "referenceId": "UserRef2"
+            }
+        },
+        {
+            "attributes": {
+                "type": "User",
+                "referenceId": "UserRef3"
+            }
+        },
+        {
+            "attributes": {
+                "type": "User",
+                "referenceId": "UserRef4"
+            }
+        },
+        {
+            "attributes": {
+                "type": "User",
+                "referenceId": "UserRef5"
+            }
+        },
+        {
+            "attributes": {
+                "type": "User",
+                "referenceId": "UserRef6"
+            }
+        },
+        {
+            "attributes": {
+                "type": "User",
+                "referenceId": "UserRef7"
+            }
+        },
+        {
+            "attributes": {
+                "type": "User",
+                "referenceId": "UserRef8"
+            }
+        },
+        {
+            "attributes": {
+                "type": "User",
+                "referenceId": "UserRef9"
+            }
+        },
+        {
+            "attributes": {
+                "type": "User",
+                "referenceId": "UserRef10"
+            }
+        },
+        {
+            "attributes": {
+                "type": "User",
+                "referenceId": "UserRef11"
+            }
+        }
+    ]
+}

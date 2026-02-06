@@ -1,0 +1,182 @@
+:host {
+    --primary: #2563EB;
+    --success: #10B981;
+    --danger: #F43F5E;
+    --warning: #F59E0B;
+    --ink: #0F172A;
+    --muted: #64748B;
+    --card: #FFFFFF;
+    --border: #E2E8F0;
+    --shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+    --shadow-strong: 0 12px 24px rgba(15, 23, 42, 0.12);
+    display: block;
+}
+
+.timeline-wrapper {
+    display: flex;
+    gap: 16px;
+    padding: 0 4px;
+}
+
+.timeline-wrapper.no-connector {
+    gap: 0;
+    padding: 0;
+}
+
+/* CONNECTOR */
+.connector-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 20px;
+}
+
+.dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #CBD5E1;
+    border: 3px solid #FFFFFF;
+    box-shadow: 0 0 0 2px #E2E8F0;
+    margin-top: 18px;
+    z-index: 2;
+}
+
+.dot.active { background: var(--primary); box-shadow: 0 0 0 2px #C7D2FE; }
+.dot.done { background: var(--success); box-shadow: 0 0 0 2px #A7F3D0; }
+
+.line {
+    width: 2px;
+    background: #E5E7EB;
+    flex-grow: 1;
+    margin-bottom: -20px;
+}
+
+/* CARD */
+.visit-card {
+    position: relative;
+    flex: 1;
+    background: var(--card);
+    border-radius: 18px;
+    margin-bottom: 22px;
+    padding: 16px 16px 14px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    animation: tileIn 0.28s ease both;
+    cursor: pointer;
+}
+
+.visit-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    border-radius: 18px 0 0 18px;
+    background: transparent;
+}
+
+.visit-card:active { transform: scale(0.99); box-shadow: var(--shadow-strong); }
+
+.top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.outlet-name {
+    font-size: 1rem;
+    color: var(--ink);
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.map-circle-btn {
+    background: #F8FAFC;
+    border: 1px solid var(--border);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    --slds-c-icon-color-foreground-default: #475569;
+    --slds-c-icon-color-foreground-hover: var(--ink);
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+}
+
+.map-circle-btn:active { transform: scale(0.96); }
+
+.address {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin: 10px 0 16px;
+}
+
+.address-icon {
+    margin-top: 2px;
+    --slds-c-icon-color-foreground-default: var(--muted);
+}
+
+.address-text {
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.45;
+}
+
+.footer-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid #F1F5F9;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* BADGES */
+.status-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    background: #F1F5F9;
+    color: #64748B;
+    letter-spacing: 0.4px;
+    border: 1px solid rgba(15, 23, 42, 0.05);
+}
+
+.status-badge.completed { background: #DCFCE7; color: #166534; }
+.status-badge.in-progress { background: #E0E7FF; color: #3730A3; }
+.status-badge.approved { background: #FEF3C7; color: #92400E; }
+.status-badge.cancelled { background: #FFE4E6; color: #9F1239; }
+
+/* BUTTONS */
+@keyframes tileIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (prefers-color-scheme: dark) {
+    :host {
+        --card: #1E293B;
+        --border: #334155;
+        --ink: #F8FAFC;
+        --muted: #94A3B8;
+        --shadow: 0 8px 20px rgba(15, 23, 42, 0.35);
+    }
+
+    .visit-card.status-completed,
+    .visit-card.status-in-progress,
+    .visit-card.status-approved,
+    .visit-card.status-cancelled {
+        background: var(--card);
+    }
+
+    .line { background: #334155; }
+    .map-circle-btn { background: #0F172A; border-color: #334155; }
+    .footer-row { border-top-color: #334155; }
+}

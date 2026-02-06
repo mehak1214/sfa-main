@@ -1,0 +1,507 @@
+<!--
+/**
+ * BSD 3-Clause License
+ *
+ * Copyright (c) 2021, Avonni Labs, Inc.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * - Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ *
+ * - Neither the name of the copyright holder nor the names of its
+ *   contributors may be used to endorse or promote products derived from
+ *   this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+-->
+
+<template>
+    <div class="slds-grid slds-grid_vertical avonni-list__full-height">
+        <div class="slds-grid slds-grid_vertical avonni-list__full-height">
+            <p
+                if:true={label}
+                data-element-id="label"
+                class="slds-m-bottom_x-small avonni-list__header_font"
+            >
+                {label}
+            </p>
+            <span
+                id="instructions"
+                class="slds-assistive-text"
+                aria-live="assertive"
+                lwc:dom="manual"
+            ></span>
+
+            <span
+                if:true={alternativeText}
+                class="slds-assistive-text"
+                data-element-id="span-alternative-text"
+                >{alternativeText}</span
+            >
+        </div>
+        <div
+            class={computedListContainerClass}
+            data-element-id="list-container"
+            onscroll={handleScroll}
+        >
+            <div
+                class="
+                    avonni-list__flex-col
+                    avonni-list__page-change-button-container
+                "
+                if:true={showPaginationButtons}
+            >
+                <lightning-button-icon
+                    alternative-text="Previous Items"
+                    disabled={previousPageDisabled}
+                    class="avonni-list__page-change-button"
+                    data-element-id="previous-page-button"
+                    icon-name="utility:chevronleft"
+                    size="large"
+                    variant="bare"
+                    onclick={previousPage}
+                ></lightning-button-icon>
+            </div>
+            <ul
+                class={computedListClass}
+                data-element-id="list-element"
+                role={menuRole}
+                onclick={handleListClick}
+            >
+                <template
+                    for:each={displayedItems}
+                    for:item="item"
+                    for:index="index"
+                >
+                    <li
+                        role={itemRole}
+                        class={computedItemWrapperClass}
+                        key={generateKey}
+                        onmousedown={dragStart}
+                        onmousemove={drag}
+                        onmouseup={handleItemMouseUp}
+                        ontouchend={handleItemMouseUp}
+                        ontouchstart={dragStart}
+                        ontouchmove={drag}
+                        onkeydown={handleKeyDown}
+                        onclick={handleItemClick}
+                        data-index={item.index}
+                        data-element-temp-index={item.index}
+                        tabindex="0"
+                        aria-label={item.label}
+                        data-name={item.name}
+                        aria-describedby="instructions"
+                        data-element-id="li-item"
+                    >
+                        <c-avonni-card
+                            class={computedItemClass}
+                            media-position={item.imagePosition}
+                        >
+                            <!-- Media Actions  -->
+                            <div
+                                if:true={hasMediaActions}
+                                slot="media-actions"
+                                class="avonni-list__item-media-action-top-right"
+                            >
+                                <div
+                                    if:true={item.hasImage}
+                                    onkeydown={handleStopKeyDown}
+                                >
+                                    <lightning-button-menu
+                                        if:true={hasMultipleMediaActions}
+                                        menu-alignment="right"
+                                        icon-size="x-small"
+                                        data-element-id="media-action-menu"
+                                        data-item-index={item.index}
+                                        onclick={stopPropagation}
+                                        onmousedown={stopPropagation}
+                                        ontouchstart={stopPropagation}
+                                        onselect={handleMediaActionClick}
+                                        variant="border-filled"
+                                    >
+                                        <template
+                                            for:each={computedMediaActions}
+                                            for:item="action"
+                                        >
+                                            <lightning-menu-item
+                                                key={action.name}
+                                                value={action.name}
+                                                label={action.label}
+                                                disabled={action.disabled}
+                                                icon-name={action.iconName}
+                                                data-element-id="media-action-menu-item"
+                                            ></lightning-menu-item>
+                                        </template>
+                                    </lightning-button-menu>
+                                    <template
+                                        if:false={hasMultipleMediaActions}
+                                    >
+                                        <lightning-button
+                                            if:true={firstMediaAction.label}
+                                            class="slds-m-right_none"
+                                            key={firstMediaAction.name}
+                                            value={firstMediaAction.name}
+                                            label={firstMediaAction.label}
+                                            disabled={firstMediaAction.disabled}
+                                            icon-name={firstMediaAction.iconName}
+                                            data-item-index={item.index}
+                                            data-element-id="media-action-button"
+                                            onclick={handleMediaActionClick}
+                                            onmousedown={stopPropagation}
+                                            ontouchstart={stopPropagation}
+                                        ></lightning-button>
+                                        <lightning-button-icon
+                                            if:false={firstMediaAction.label}
+                                            class="slds-m-right_none"
+                                            key={firstMediaAction.name}
+                                            value={firstMediaAction.name}
+                                            disabled={firstMediaAction.disabled}
+                                            icon-name={firstMediaAction.iconName}
+                                            size="small"
+                                            variant="border-filled"
+                                            data-item-index={item.index}
+                                            data-element-id="media-action-button-icon"
+                                            onclick={handleMediaActionClick}
+                                            onmousedown={stopPropagation}
+                                            ontouchstart={stopPropagation}
+                                        ></lightning-button-icon>
+                                    </template>
+                                </div>
+                            </div>
+                            <div
+                                slot="media"
+                                class="avonni-list__image_container"
+                            >
+                                <div
+                                    class="
+                                        slds-grid
+                                        slds-grid_vertical-align-center
+                                        avonni-list__image_container
+                                    "
+                                >
+                                    <lightning-icon
+                                        if:true={showSortIconInLeftImage}
+                                        class="
+                                            slds-p-horizontal_xx-small
+                                            avonni-list__item-sortable-icon-cursor
+                                        "
+                                        icon-name={sortableIconName}
+                                        size="x-small"
+                                        data-element-id="lightning-icon-sort-left"
+                                        onclick={stopPropagation}
+                                    ></lightning-icon>
+                                    <div
+                                        if:true={item.imageSrc}
+                                        style={computedImageStyle}
+                                        data-element-id="list-img"
+                                        class="slds-is-relative"
+                                    >
+                                        <img
+                                            loading="lazy"
+                                            style={computedImageStyle}
+                                            if:true={item.imageSrc}
+                                            class={computedImageMediaClass}
+                                            key={item.imageSrc}
+                                            src={item.imageSrc}
+                                            draggable="false"
+                                            data-element-id="list-img-media"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <div
+                                class="
+                                    slds-grid slds-grid_vertical-align-center
+                                "
+                            >
+                                <lightning-icon
+                                    if:true={showSortIconLeftOfContent}
+                                    class="
+                                        slds-p-horizontal_xx-small
+                                        avonni-list__item-sortable-icon-cursor
+                                    "
+                                    icon-name={sortableIconName}
+                                    size="x-small"
+                                    data-element-id="lightning-icon-sort-left"
+                                ></lightning-icon>
+                                <div
+                                    class="
+                                        slds-grid
+                                        avonni-list__flex-col
+                                        avonni-list-item-body__vertical-alignment
+                                        slds-has-flexi-truncate
+                                        avonni-list-item-body
+                                    "
+                                >
+                                    <!-- Avatar -->
+
+                                    <c-avonni-avatar
+                                        if:true={item.avatar}
+                                        class="
+                                            avonni-list-item-avatar
+                                            slds-m-right_x-small
+                                        "
+                                        fallback-icon-name={item.avatar.fallbackIconName}
+                                        src={item.avatar.src}
+                                        size={item.avatar.size}
+                                        initials={item.avatar.initials}
+                                        onmousedown={handleAvatarDragStart}
+                                        variant={item.avatar.variant}
+                                        presence={item.avatar.presence}
+                                        presence-position={item.avatar.presencePosition}
+                                        hide-avatar-details="true"
+                                        data-element-id="avonni-avatar"
+                                    ></c-avonni-avatar>
+                                    <div
+                                        data-element-id="avonni-list-item-body-text-color"
+                                        class={item.computedTextColor}
+                                    >
+                                        <!-- Item label and icons -->
+                                        <div
+                                            class="
+                                                slds-grid
+                                                slds-grid_vertical-align-center
+                                                slds-margin-bottom_xx-small
+                                            "
+                                        >
+                                            <div
+                                                class="
+                                                    slds-truncate
+                                                    avonni-list__item-header_font
+                                                "
+                                                data-element-id="div-item-label"
+                                            >
+                                                <template if:true={item.href}>
+                                                    <a
+                                                        href={item.href}
+                                                        class="
+                                                            avonni-list__item-header-link
+                                                        "
+                                                        onclick={stopPropagation}
+                                                        onmousedown={stopPropagation}
+                                                        >{item.label}</a
+                                                    >
+                                                </template>
+                                                <template if:false={item.href}>
+                                                    {item.label}
+                                                </template>
+                                            </div>
+                                            <span
+                                                if:true={item.icons}
+                                                class="
+                                                    slds-p-left_xx-small
+                                                    avonni-list__item-icons
+                                                "
+                                            >
+                                                <template
+                                                    for:each={item.icons}
+                                                    for:item="icon"
+                                                >
+                                                    <span
+                                                        key={generateKey}
+                                                        class="
+                                                            avonni-list__item-icon
+                                                        "
+                                                    >
+                                                        <lightning-icon
+                                                            icon-name={icon}
+                                                            size="xx-small"
+                                                            class="
+                                                                slds-p-around_xxx-small
+                                                            "
+                                                        ></lightning-icon>
+                                                    </span>
+                                                </template>
+                                            </span>
+                                        </div>
+
+                                        <!-- Description -->
+                                        <p
+                                            if:true={item.description}
+                                            class="
+                                                slds-text-body_regular
+                                                slds-line-clamp_x-small
+                                                avonni-list__item-description_font
+                                            "
+                                        >
+                                            <lightning-formatted-rich-text
+                                                value={item.description}
+                                            ></lightning-formatted-rich-text>
+                                        </p>
+
+                                        <!-- Info -->
+                                        <ul
+                                            if:true={item.infos}
+                                            class="
+                                                slds-list_horizontal
+                                                slds-has-dividers_left
+                                                slds-has-block-links
+                                            "
+                                        >
+                                            <template
+                                                for:each={item.infos}
+                                                for:item="info"
+                                            >
+                                                <li
+                                                    key={info.label}
+                                                    class="slds-item"
+                                                >
+                                                    <a
+                                                        href={info.href}
+                                                        class="
+                                                            avonni-list__item-info-link
+                                                        "
+                                                        onclick={stopPropagation}
+                                                        onmousedown={stopPropagation}
+                                                        >{info.label}</a
+                                                    >
+                                                </li>
+                                            </template>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <!-- Sort icon -->
+                                <lightning-icon
+                                    if:true={showSortIconRight}
+                                    class="
+                                        slds-m-right_x-small
+                                        avonni-list__item-sortable-icon-cursor
+                                    "
+                                    icon-name={sortableIconName}
+                                    size="x-small"
+                                    data-element-id="lightning-icon-sort-right"
+                                    onclick={stopPropagation}
+                                ></lightning-icon>
+
+                                <!-- Actions -->
+                                <div
+                                    if:true={hasActions}
+                                    class="slds-m-right_x-small"
+                                    onkeydown={handleStopKeyDown}
+                                >
+                                    <lightning-button-menu
+                                        if:true={hasMultipleActions}
+                                        menu-alignment="right"
+                                        icon-size="x-small"
+                                        data-element-id="lightning-button-menu"
+                                        data-item-index={item.index}
+                                        onclick={stopPropagation}
+                                        onmousedown={stopPropagation}
+                                        ontouchstart={stopPropagation}
+                                        onselect={handleActionClick}
+                                        variant="border-filled"
+                                    >
+                                        <template
+                                            for:each={computedActions}
+                                            for:item="action"
+                                        >
+                                            <lightning-menu-item
+                                                key={action.name}
+                                                value={action.name}
+                                                label={action.label}
+                                                disabled={action.disabled}
+                                                icon-name={action.iconName}
+                                                data-element-id="lightning-menu-item"
+                                            ></lightning-menu-item>
+                                        </template>
+                                    </lightning-button-menu>
+                                    <template if:false={hasMultipleActions}>
+                                        <lightning-button
+                                            if:true={firstAction.label}
+                                            class="slds-m-right_none"
+                                            key={firstAction.name}
+                                            value={firstAction.name}
+                                            label={firstAction.label}
+                                            disabled={firstAction.disabled}
+                                            icon-name={firstAction.iconName}
+                                            data-item-index={item.index}
+                                            data-element-id="lightning-button"
+                                            onclick={handleActionClick}
+                                            onmousedown={stopPropagation}
+                                            ontouchstart={stopPropagation}
+                                        ></lightning-button>
+                                        <lightning-button-icon
+                                            if:false={firstAction.label}
+                                            class="slds-m-right_none"
+                                            key={firstAction.name}
+                                            value={firstAction.name}
+                                            disabled={firstAction.disabled}
+                                            icon-name={firstAction.iconName}
+                                            size={actionButtonIconSize}
+                                            variant={actionButtonIconVariant}
+                                            data-item-index={item.index}
+                                            data-element-id="lightning-button-icon"
+                                            onclick={handleActionClick}
+                                            onmousedown={stopPropagation}
+                                            ontouchstart={stopPropagation}
+                                        ></lightning-button-icon>
+                                    </template>
+                                </div>
+                            </div>
+                        </c-avonni-card>
+                    </li>
+                </template>
+                <li
+                    if:true={isLoadingBelow}
+                    data-element-id="loading-spinner-container"
+                    class="
+                        avonni-list__flex-col
+                        slds-size_12-of-12
+                        slds-is-relative
+                        avonni-list__lower-spinner
+                    "
+                >
+                    <lightning-spinner
+                        data-element-id="loading-spinner-below"
+                        size="small"
+                        class="slds-spinner_container"
+                        alternative-text="Loading..."
+                    ></lightning-spinner>
+                </li>
+            </ul>
+            <div
+                class="
+                    avonni-list__flex-col
+                    slds-is-relative
+                    avonni-list__page-change-button-container
+                "
+                if:true={showPaginationButtons}
+            >
+                <lightning-button-icon
+                    alternative-text="Next Items"
+                    class="avonni-list__page-change-button"
+                    disabled={nextPageDisabled}
+                    data-element-id="next-page-button"
+                    icon-name="utility:chevronright"
+                    size="large"
+                    variant="bare"
+                    onclick={nextPage}
+                ></lightning-button-icon>
+                <lightning-spinner
+                    if:true={isLoading}
+                    size="small"
+                    class="slds-spinner_container"
+                    alternative-text="Loading..."
+                ></lightning-spinner>
+            </div>
+        </div>
+    </div>
+</template>

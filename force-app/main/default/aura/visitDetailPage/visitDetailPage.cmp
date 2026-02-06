@@ -1,0 +1,9 @@
+<aura:component implements="lightning:isUrlAddressable,flexipage:availableForAllPageTypes" access="global">
+    <aura:attribute name="pageReference" type="Object" />
+    <aura:attribute name="visitId" type="String" />
+
+    <aura:handler name="init" value="{!this}" action="{!c.onInit}" />
+    <aura:handler name="change" value="{!v.pageReference}" action="{!c.onPageRefChange}" />
+
+    <c:visitDetail visitId="{!v.visitId}" />
+</aura:component>

@@ -1,0 +1,270 @@
+<!--
+/**
+ * BSD 3-Clause License
+ *
+ * Copyright (c) 2021, Avonni Labs, Inc.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * - Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ *
+ * - Neither the name of the copyright holder nor the names of its
+ *   contributors may be used to endorse or promote products derived from
+ *   this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+-->
+
+<template>
+    <div
+        class={activityTimelineItemOuterClass}
+        data-element-id="avonni-timeline-item"
+        style={backgroundColor}
+    >
+        <div class={computedSldsMedia}>
+            <div class="slds-media__figure">
+                <template if:true={hasFields}>
+                    <template if:false={closed}>
+                        <lightning-button-icon
+                            icon-name="utility:chevrondown"
+                            size="medium"
+                            variant="bare"
+                            onclick={handleSectionStatus}
+                            aria-expanded="true"
+                        ></lightning-button-icon>
+                    </template>
+                    <template if:true={closed}>
+                        <lightning-button-icon
+                            icon-name="utility:chevronright"
+                            size="medium"
+                            variant="bare"
+                            onclick={handleSectionStatus}
+                            aria-expanded="false"
+                        ></lightning-button-icon>
+                    </template>
+                </template>
+                <lightning-icon
+                    if:true={iconName}
+                    icon-name={iconName}
+                    size={iconSize}
+                    class={timelineIconClass}
+                    data-element-id="item-marker"
+                ></lightning-icon>
+                <div
+                    if:false={iconName}
+                    class={timelineItemBullet}
+                    data-element-id="item-marker"
+                ></div>
+            </div>
+            <div class="slds-media__body">
+                <div
+                    class="
+                        slds-grid slds-grid_align-spread
+                        slds-timeline__trigger
+                        avonni-activity-timeline-item-header
+                    "
+                >
+                    <div
+                        class="
+                            slds-grid slds-grid_vertical-align-center
+                            slds-truncate slds-no-space
+                        "
+                    >
+                        <lightning-input
+                            if:true={hasCheckbox}
+                            checked={checked}
+                            type="checkbox"
+                            label="checkbox"
+                            variant="label-hidden"
+                            class="slds-no-flex"
+                            data-element-id="lightning-input-checkbox"
+                            onchange={handleCheck}
+                        >
+                        </lightning-input>
+
+                        <div
+                            class="slds-has-flexi-truncate"
+                            data-element-id="div-title"
+                            onclick={handleTitleClick}
+                        >
+                            <a if:true={href} href={href}>
+                                <h3 class="slds-truncate">{title}</h3>
+                            </a>
+                            <h3 if:false={href} class="slds-truncate">
+                                {title}
+                            </h3>
+                        </div>
+
+                        <div if:true={icons} class="slds-no-flex">
+                            <template for:each={icons} for:item="icon">
+                                <lightning-icon
+                                    key={icon}
+                                    icon-name={icon}
+                                    size="xx-small"
+                                    class="slds-p-left_x-small"
+                                ></lightning-icon>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div
+                        class="
+                            slds-timeline__actions slds-timeline__actions_inline
+                            avonni-activity-timeline-item-header-date
+                        "
+                    >
+                        <div
+                            if:true={dateFormat}
+                            class="slds-timeline__date"
+                            data-element-id="avonni-formatted-date-time"
+                        >
+                            {formattedDate}
+                        </div>
+                        <div slot="figure-inverse" if:true={actions.length}>
+                            <lightning-button-menu
+                                alternative-text="Show menu"
+                                icon-size="x-small"
+                                menu-alignment="right"
+                                variant={buttonMenuVariant}
+                                data-element-id="lightning-button-menu-actions"
+                                onselect={handleActionClick}
+                            >
+                                <template for:each={actions} for:item="action">
+                                    <lightning-menu-item
+                                        key={action.name}
+                                        class="slds-text-color_default"
+                                        disabled={action.disabled}
+                                        label={action.label}
+                                        prefix-icon-name={action.iconName}
+                                        value={action.name}
+                                        data-element-id="lightning-menu-item-action"
+                                    ></lightning-menu-item>
+                                </template>
+                            </lightning-button-menu>
+                        </div>
+                    </div>
+                </div>
+                <p
+                    class="slds-m-horizontal_xx-small slds-truncate"
+                    if:true={description}
+                >
+                    <lightning-formatted-rich-text
+                        value={description}
+                        data-element-id="lightning-formatted-rich-text-description"
+                    ></lightning-formatted-rich-text>
+                </p>
+                <template if:false={closed}>
+                    <template if:true={hasError}>
+                        <div
+                            class="
+                                slds-grid
+                                slds-text-color_error
+                                slds-m-top_x-small
+                                slds-m-horizontal_xx-small
+                            "
+                            id="task-item-error"
+                        >
+                            <lightning-icon
+                                icon-name="utility:error"
+                                alternative-text="Error!"
+                                variant="error"
+                                size="x-small"
+                                class="slds-m-right_x-small"
+                            ></lightning-icon>
+                            <p>There was an error loading the details</p>
+                        </div>
+                    </template>
+                    <template if:false={hasError}>
+                        <template if:true={hasFields}>
+                            <div
+                                aria-hidden="false"
+                                class="
+                                    avonni-primitive-activity-timeline-item__fields-container
+                                    slds-m-horizontal_xx-small
+                                "
+                            >
+                                <lightning-layout
+                                    data-element-id="fields-container"
+                                    multiple-rows="true"
+                                >
+                                    <template
+                                        for:each={fields}
+                                        for:item="field"
+                                        for:index="index"
+                                    >
+                                        <lightning-layout-item
+                                            key={field.value}
+                                            class="
+                                                slds-truncate
+                                                slds-p-top_medium
+                                            "
+                                            size={fieldSize}
+                                        >
+                                            <c-avonni-output-data
+                                                label={field.label}
+                                                value={field.value}
+                                                type={field.type}
+                                                type-attributes={field.typeAttributes}
+                                                data-element-id="avonni-output-data"
+                                            ></c-avonni-output-data>
+                                        </lightning-layout-item>
+                                    </template>
+                                </lightning-layout>
+                                <template if:true={buttonLabel}>
+                                    <lightning-button
+                                        label={buttonLabel}
+                                        variant={buttonVariant}
+                                        icon-name={buttonIconName}
+                                        icon-position={buttonIconPosition}
+                                        disabled={buttonDisabled}
+                                        onclick={handleButtonClick}
+                                    ></lightning-button>
+                                </template>
+                            </div>
+                        </template>
+                        <template if:false={hasFields}>
+                            <template if:true={isLoading}>
+                                <div class="slds-is-relative">
+                                    <lightning-spinner
+                                        size="small"
+                                        class="slds-spinner_container"
+                                        alternative-text={loadingStateAlternativeText}
+                                    ></lightning-spinner>
+                                </div>
+                            </template>
+                            <template if:true={buttonLabel}>
+                                <div class="slds-m-top_small">
+                                    <lightning-button
+                                        label={buttonLabel}
+                                        variant={buttonVariant}
+                                        icon-name={buttonIconName}
+                                        icon-position={buttonIconPosition}
+                                        disabled={buttonDisabled}
+                                        onclick={handleButtonClick}
+                                    ></lightning-button>
+                                </div>
+                            </template>
+                        </template>
+                    </template>
+                </template>
+            </div>
+        </div>
+    </div>
+</template>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<IndustriesSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <enableAIAccelerator>false</enableAIAccelerator>
+    <enableAccountScoreEnabled>false</enableAccountScoreEnabled>
+    <enableActionPlanTaskComment>false</enableActionPlanTaskComment>
+    <enableActionableList>false</enableActionableList>
+    <enableAppFrmAnywhereOrgPref>false</enableAppFrmAnywhereOrgPref>
+    <enableAppInviteOrgPref>false</enableAppInviteOrgPref>
+    <enableAppraisalMgmt>false</enableAppraisalMgmt>
+    <enableCdsAssetDataSharingParticipant>false</enableCdsAssetDataSharingParticipant>
+    <enableCdsAssetDataSharingParticipantExprc>false</enableCdsAssetDataSharingParticipantExprc>
+    <enableDontSharePartyprofWPortalOrgPref>false</enableDontSharePartyprofWPortalOrgPref>
+    <enableDropInAppointmentsOrgPref>false</enableDropInAppointmentsOrgPref>
+    <enableEinsteinVisits>false</enableEinsteinVisits>
+    <enableGroupMembershipPref>false</enableGroupMembershipPref>
+    <enableIndustriesRebates>false</enableIndustriesRebates>
+    <enableIndustriesShipAndDebit>false</enableIndustriesShipAndDebit>
+    <enableNewTimelineSetupFlow>false</enableNewTimelineSetupFlow>
+    <enablePartyProfileParentSharingOrgPref>false</enablePartyProfileParentSharingOrgPref>
+    <enablePartyprofParentMultiSharingOrgPref>false</enablePartyprofParentMultiSharingOrgPref>
+    <enableRecordAlertCustomSharingPref>false</enableRecordAlertCustomSharingPref>
+    <enableScoringFrameworkCRMAPref>false</enableScoringFrameworkCRMAPref>
+    <enableScoringFrameworkOrgPref>false</enableScoringFrameworkOrgPref>
+    <enableTimelineCachePref>true</enableTimelineCachePref>
+    <enableTimelinePref>false</enableTimelinePref>
+    <enableVisitCalendarSync>false</enableVisitCalendarSync>
+    <enableVisitInventoryEnabled>true</enableVisitInventoryEnabled>
+    <partyProfMultiShrPrtnrsOrgPref>false</partyProfMultiShrPrtnrsOrgPref>
+    <rlaEditIfAccHasEdit>false</rlaEditIfAccHasEdit>
+</IndustriesSettings>
