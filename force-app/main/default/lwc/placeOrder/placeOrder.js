@@ -24,10 +24,10 @@ export default class PlaceOrder extends LightningElement {
     @track distributorOptions = [];
 
     // Stores the selected franchise Id
-    selectedFranchise;
+    @track selectedFranchise;
 
     // Stores the selected distributor Id
-    selectedDistributor;
+    @track selectedDistributor;
 
     // 🔹 Automatically calls Apex method to get franchise accounts
     @wire(getFranchiseAccounts)
@@ -60,25 +60,9 @@ export default class PlaceOrder extends LightningElement {
                 quantity: 0
             }));
         } else {
-            // If no distributor selected, show all products
-            if (!this.selectedDistributor) {
-                this.wiredProductsAll();
-            }
+            // Reset products when no distributor selected
+            this.products = [];
         }
-    }
-
-    // 🔹 Fallback method to get all products when no distributor is selected
-    wiredProductsAll() {
-        getProducts().then(data => {
-            if (data) {
-                this.products = data.map(p => ({
-                    ...p,
-                    quantity: 0
-                }));
-            }
-        }).catch(error => {
-            console.error('Error loading all products:', error);
-        });
     }
 
     // 🔹 Called when user selects a franchise from dropdown
@@ -115,14 +99,18 @@ export default class PlaceOrder extends LightningElement {
         });
     }
 
-    // 🔹 Called when user clicks Save Order button
-    saveOrder() {
+    // 🔹 Called when user clicks Add to Cart button
+    addToCart() {
+        console.log('PlaceOrder: addToCart called');
+        
         if (!this.selectedFranchise) {
+            console.log('PlaceOrder: No franchise selected');
             this.showToast('Error', 'Please select a franchise', 'error');
             return;
         }
 
         if (!this.selectedDistributor) {
+            console.log('PlaceOrder: No distributor selected');
             this.showToast('Error', 'Please select a dealer/distributor', 'error');
             return;
         }
@@ -136,41 +124,44 @@ export default class PlaceOrder extends LightningElement {
                 quantity: parseInt(p.quantity, 10) || 0
             }));
 
+        console.log('PlaceOrder: Selected items:', selectedItems.length);
+
         if (selectedItems.length === 0) {
+            console.log('PlaceOrder: No items selected');
             this.showToast('Error', 'Please select at least one product', 'error');
             return;
         }
 
         const invalidItems = selectedItems.filter(item => !item.productId);
         if (invalidItems.length > 0) {
+            console.log('PlaceOrder: Invalid items found');
             this.showToast('Error', 'Some products have invalid IDs', 'error');
             console.error('Invalid items:', invalidItems);
             return;
         }
 
-        placeOrder({
-            franchiseId: this.selectedFranchise,
-            distributorId: this.selectedDistributor,
-            selectedProducts: selectedItems
-        })
-        .then((result) => {
-            this.showToast(
-                'Success',
-                'Order created successfully with ID: ' + result,
-                'success'
-            );
-            this.products = this.products.map(p => ({
-                ...p,
-                quantity: 0
-            }));
-            this.selectedFranchise = undefined;
-            this.selectedDistributor = undefined;
-        })
-        .catch(error => {
-            const errorMsg = error.body?.message || error.message || 'An error occurred while creating the order';
-            this.showToast('Error', errorMsg, 'error');
-            console.error('Error placing order:', error);
-        });
+        console.log('PlaceOrder: Dispatching addtocart event with franchiseId:', this.selectedFranchise, 'distributorId:', this.selectedDistributor, 'items:', selectedItems.length);
+
+        // Dispatch event to parent component with cart items
+        this.dispatchEvent(new CustomEvent('addtocart', {
+            detail: {
+                franchiseId: this.selectedFranchise,
+                distributorId: this.selectedDistributor,
+                items: selectedItems
+            },
+            bubbles: true,
+            composed: true
+        }));
+
+        console.log('PlaceOrder: Event dispatched successfully');
+
+        this.showToast('Success', 'Products added to cart!', 'success');
+
+        // Reset quantities after adding to cart
+        this.products = this.products.map(p => ({
+            ...p,
+            quantity: 0
+        }));
     }
 
     // 🔹 Reusable function to show toast messages (works on desktop & mobile)

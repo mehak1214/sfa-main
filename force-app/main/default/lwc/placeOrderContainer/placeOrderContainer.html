@@ -1,0 +1,17 @@
+<template>
+    <!-- Product Selection View - Always in DOM -->
+    <div class="slds-show-when-selection" style={showSelectionStyle}>
+        <c-place-order onaddtocart={handleAddToCart}></c-place-order>
+    </div>
+
+    <!-- Shopping Cart View - Always in DOM -->
+    <div class="slds-show-when-cart" style={showCartStyle}>
+        <c-place-order-cart 
+            cart-items={cartItems}
+            franchise-id={franchiseId}
+            distributor-id={distributorId}
+            onbacktoselection={handleBackToSelection} 
+            onorderplaced={handleOrderPlaced}>
+        </c-place-order-cart>
+    </div>
+</template>

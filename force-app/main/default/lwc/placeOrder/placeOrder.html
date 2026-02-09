@@ -19,61 +19,49 @@
             </lightning-combobox>
         </div>
 
-        <div class="slds-p-around_medium">
-            <template if:false={selectedDistributor}>
-                <lightning-alert 
-                    title="Notice" 
-                    variant="info"
-                    message="Please select a Dealer/Distributor to view available products">
-                </lightning-alert>
-            </template>
-        </div>
-
         <div class="slds-grid slds-wrap slds-p-around_medium">
-            <template if:true={selectedDistributor}>
-                <template for:each={products} for:item="prod">
-                    <div key={prod.productId}
-                         class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3 slds-p-around_small">
+            <template for:each={products} for:item="prod">
+                <div key={prod.productId}
+                     class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3 slds-p-around_small">
 
-                        <div class="slds-box slds-text-align_center">
+                    <div class="slds-box slds-text-align_center">
 
-                            <template if:true={prod.imageUrl}>
-                                <img src={prod.imageUrl} class="product-image"/>
-                            </template>
+                        <template if:true={prod.imageUrl}>
+                            <img src={prod.imageUrl} class="product-image"/>
+                        </template>
 
-                            <h3 class="slds-text-heading_small slds-m-top_small">
-                                {prod.productName}
-                            </h3>
+                        <h3 class="slds-text-heading_small slds-m-top_small">
+                            {prod.productName}
+                        </h3>
 
-                            <div class="slds-m-top_small">
-                                <lightning-button-icon
-                                    icon-name="utility:dash"
-                                    data-id={prod.productId}
-                                    onclick={decreaseQty}>
-                                </lightning-button-icon>
+                        <div class="slds-m-top_small">
+                            <lightning-button-icon
+                                icon-name="utility:dash"
+                                data-id={prod.productId}
+                                onclick={decreaseQty}>
+                            </lightning-button-icon>
 
-                                <span class="slds-m-horizontal_small slds-text-heading_medium">
-                                    {prod.quantity}
-                                </span>
+                            <span class="slds-m-horizontal_small slds-text-heading_medium">
+                                {prod.quantity}
+                            </span>
 
-                                <lightning-button-icon
-                                    icon-name="utility:add"
-                                    data-id={prod.productId}
-                                    onclick={increaseQty}>
-                                </lightning-button-icon>
-                            </div>
-
+                            <lightning-button-icon
+                                icon-name="utility:add"
+                                data-id={prod.productId}
+                                onclick={increaseQty}>
+                            </lightning-button-icon>
                         </div>
+
                     </div>
-                </template>
+                </div>
             </template>
         </div>
 
         <div class="slds-align_absolute-center slds-p-around_medium">
             <lightning-button
                 variant="brand"
-                label="Save Order"
-                onclick={saveOrder}>
+                label="Add to Cart"
+                onclick={addToCart}>
             </lightning-button>
         </div>
 

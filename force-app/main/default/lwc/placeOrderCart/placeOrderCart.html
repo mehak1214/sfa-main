@@ -1,0 +1,88 @@
+<template>
+    <lightning-card title="Your Shopping Cart">
+        
+        <div class="slds-grid slds-wrap slds-p-around_medium">
+            <template if:true={items.length}>
+                <template for:each={items} for:item="item">
+                    <div key={item.productId} class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-p-around_small">
+                        <div class="slds-box slds-text-align_center">
+                            
+                            <template if:true={item.imageUrl}>
+                                <img src={item.imageUrl} class="product-image"/>
+                            </template>
+                            
+                            <h3 class="slds-text-heading_small slds-m-top_small">
+                                {item.productName}
+                            </h3>
+                            
+                            <div class="slds-m-top_small slds-grid slds-grid_vertical slds-wrap">
+                                <div class="slds-col slds-size_1-of-1 slds-text-align_center">
+                                    <lightning-button-icon
+                                        icon-name="utility:dash"
+                                        data-id={item.productId}
+                                        onclick={decreaseQty}
+                                        size="small">
+                                    </lightning-button-icon>
+                                    
+                                    <span class="slds-m-horizontal_small slds-text-heading_medium">
+                                        {item.quantity}
+                                    </span>
+                                    
+                                    <lightning-button-icon
+                                        icon-name="utility:add"
+                                        data-id={item.productId}
+                                        onclick={increaseQty}
+                                        size="small">
+                                    </lightning-button-icon>
+                                </div>
+                                
+                                <div class="slds-col slds-size_1-of-1 slds-m-top_small">
+                                    <lightning-button 
+                                        label="Remove" 
+                                        variant="destructive" 
+                                        size="small"
+                                        data-id={item.productId}
+                                        onclick={removeFromCart}>
+                                    </lightning-button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                
+                <div class="slds-col slds-size_1-of-1 slds-p-around_medium">
+                    <div class="slds-grid slds-grid_vertical slds-wrap slds-align_absolute-center">
+                        <div class="slds-col slds-size_1-of-1 slds-text-align_center">
+                            <p>Total Items: {totalItems}</p>
+                        </div>
+                        <div class="slds-col slds-size_1-of-1 slds-text-align_center slds-m-top_small">
+                            <lightning-button 
+                                label="Back to Product Selection" 
+                                variant="neutral" 
+                                onclick={goToProductSelection}>
+                            </lightning-button>
+                        </div>
+                        <div class="slds-col slds-size_1-of-1 slds-text-align_center slds-m-top_small">
+                            <lightning-button 
+                                variant="brand" 
+                                label="Place Order" 
+                                onclick={saveOrder}>
+                            </lightning-button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+            
+            <template if:false={items.length}>
+                <div class="slds-col slds-size_1-of-1 slds-text-align_center slds-p-around_medium">
+                    <p>Your cart is empty.</p>
+                    <lightning-button 
+                        label="Back to Product Selection" 
+                        variant="brand" 
+                        onclick={goToProductSelection}>
+                    </lightning-button>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>
