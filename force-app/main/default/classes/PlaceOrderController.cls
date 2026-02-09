@@ -303,6 +303,7 @@ public with sharing class PlaceOrderController {
                 }
             }
             
+            
             System.debug(' Wrapped product - ID: ' + wrapper.productId + 
                          ' | Name: ' + wrapper.productName + 
                          ' | Qty: ' + wrapper.quantity);
@@ -361,6 +362,35 @@ public with sharing class PlaceOrderController {
 
         System.debug(' Order created with Id: ' + order.Id);
 
+        /* ---------- FETCH PRODUCT PRICES FROM PRICEBOOK ---------- */
+        Map<Id, Decimal> productPriceMap = new Map<Id, Decimal>();
+        try {
+            Set<Id> productIds = new Set<Id>();
+            for (ProductOrderWrapper p : wrappedProducts) {
+                if (p != null && p.productId != null) {
+                    productIds.add(p.productId);
+                }
+            }
+            
+            if (!productIds.isEmpty()) {
+                List<PricebookEntry> pbes = [
+                    SELECT Product2Id, UnitPrice
+                    FROM PricebookEntry
+                    WHERE Product2Id IN :productIds
+                    AND IsActive = true
+                    AND Pricebook2.IsStandard = true
+                ];
+                
+                for (PricebookEntry pbe : pbes) {
+                    if (!productPriceMap.containsKey(pbe.Product2Id)) {
+                        productPriceMap.put(pbe.Product2Id, pbe.UnitPrice == null ? 0 : pbe.UnitPrice);
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            System.debug(' WARNING: Could not fetch product prices: ' + ex.getMessage());
+        }
+
         /* ---------- CREATE LINE ITEMS ---------- */
         List<ibfsa__Order_Line_Item__c> lineItems = new List<ibfsa__Order_Line_Item__c>();
 
@@ -385,20 +415,25 @@ public with sharing class PlaceOrderController {
                 continue;
             }
 
+            // Get price from productPriceMap
+            Decimal productPrice = productPriceMap.containsKey(product.productId) ? productPriceMap.get(product.productId) : 0;
+
             System.debug(
                 ' Creating line item - Product ID: ' + product.productId +
-                ' | Quantity: ' + product.quantity
+                ' | Quantity: ' + product.quantity +
+                ' | Price: ' + productPrice
             );
 
             ibfsa__Order_Line_Item__c oli =
                 new ibfsa__Order_Line_Item__c(
                     ibfsa__Order__c    = order.Id,
                     ibfsa__Product__c  = product.productId,
-                    ibfsa__Quantity__c = product.quantity
+                    ibfsa__Quantity__c = product.quantity,
+                    ibfsa__Price__c    = productPrice
                 );
 
             lineItems.add(oli);
-            System.debug(' Line item created for product: ' + product.productId + ' with qty: ' + product.quantity);
+            System.debug(' Line item created for product: ' + product.productId + ' with qty: ' + product.quantity + ' and price: ' + oli.ibfsa__Price__c);
         }
 
         System.debug(' Total line items prepared for insertion: ' + lineItems.size());

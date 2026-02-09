@@ -148,7 +148,8 @@ export default class PlaceOrder extends LightningElement {
                 productId: p.productId || '',
                 productName: p.productName || '',
                 imageUrl: p.imageUrl || '',
-                quantity: parseInt(p.quantity, 10) || 0
+                quantity: parseInt(p.quantity, 10) || 0,
+                unitPrice: p.unitPrice || 0
             }));
 
         if (selectedItems.length === 0) {
