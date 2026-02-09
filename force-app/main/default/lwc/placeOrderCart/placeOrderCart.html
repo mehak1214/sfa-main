@@ -1,7 +1,8 @@
 <template>
     <lightning-card title="Your Shopping Cart">
         
-        <div class="slds-grid slds-wrap slds-p-around_medium">
+        <div class="cart-wrapper">
+            <div class="slds-grid slds-wrap slds-p-around_medium">
             <template if:true={items.length}>
                 <template for:each={items} for:item="item">
                     <div key={item.productId} class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-p-around_small">
@@ -123,6 +124,7 @@
                     </lightning-button>
                 </div>
             </template>
+            </div>
         </div>
     </lightning-card>
 </template>

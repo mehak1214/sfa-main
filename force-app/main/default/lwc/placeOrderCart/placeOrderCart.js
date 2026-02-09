@@ -8,19 +8,21 @@ import placeOrder from '@salesforce/apex/PlaceOrderController.placeOrder';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 export default class PlaceOrderCart extends LightningElement {
-    
+
+    // Component: placeOrderCart
+    // Purpose: Display cart items, allow quantity edits/removals, apply promo codes, and place the order.
+    // - Receives `cartItems` from parent via @api setter and keeps an internal `_cartItems` backing store.
+    // - Local `items` is the reactive state used for rendering.
+    // - Updates are propagated back to parent via `cartupdate` events so the container stays in sync.
+
     // Receive cart items from parent
     @api
     set cartItems(value) {
         try {
-            console.log('PlaceOrderCart: cartItems setter called with:', value ? value.length : 0, 'items');
-            console.log('PlaceOrderCart: cartItems setter data:', JSON.stringify(value ? value.slice(0, 2) : [])); // Show first 2 items
             this._cartItems = Array.isArray(value) ? [...value] : [];
-            console.log('PlaceOrderCart: cartItems set to:', this._cartItems.length, 'items');
-            console.log('PlaceOrderCart: _cartItems data after set:', JSON.stringify(this._cartItems.slice(0, 2)));
             this.syncItems();
         } catch (error) {
-            console.error('PlaceOrderCart: Error in cartItems setter:', error);
+            /* silent error */
         }
     }
     get cartItems() {
@@ -33,7 +35,7 @@ export default class PlaceOrderCart extends LightningElement {
     @api franchiseId;
     @api distributorId;
     
-    // Track items locally
+    // Track items locally (rendered state)
     @track items = [];
     
     // Promo code tracking
@@ -42,70 +44,65 @@ export default class PlaceOrderCart extends LightningElement {
     @track hasAppliedPromo = false;
     
     connectedCallback() {
-        console.log('PlaceOrderCart: connectedCallback - cartItems:', this.cartItems ? this.cartItems.length : 0);
+        // Lifecycle hook: component initialized. Heavy initialization avoided here.
     }
     
     renderedCallback() {
-        console.log('PlaceOrderCart: renderedCallback - checking if items need syncing');
-        console.log('PlaceOrderCart: renderedCallback - _cartItems:', this._cartItems ? this._cartItems.length : 0);
-        console.log('PlaceOrderCart: renderedCallback - items:', this.items ? this.items.length : 0);
+        /* rendered */
         
         // If we have cart items but items array is empty, sync them
         if (this._cartItems && this._cartItems.length > 0 && (!this.items || this.items.length === 0)) {
-            console.log('PlaceOrderCart: renderedCallback - triggering sync');
             this.syncItems();
         }
     }
     
+    // Synchronize internal `_cartItems` backing store to the reactive `items` array used by the template.
+    // Why: parent updates come in via @api `cartItems`; we convert to a safe local structure for rendering.
     syncItems() {
         try {
-            console.log('PlaceOrderCart: syncItems called, _cartItems length:', this._cartItems ? this._cartItems.length : 0);
-            console.log('PlaceOrderCart: syncItems _cartItems data:', JSON.stringify(this._cartItems ? this._cartItems.slice(0, 2) : []));
             if (this._cartItems && Array.isArray(this._cartItems) && this._cartItems.length > 0) {
-                this.items = this._cartItems.map(item => {
-                    console.log('PlaceOrderCart: syncItems mapping item - ID:', item.productId, 'Qty received:', item.quantity, 'Type:', typeof item.quantity);
-                    return {
-                        productId: item.productId,
-                        productName: item.productName,
-                        imageUrl: item.imageUrl,
-                        quantity: item.quantity || 0
-                    };
-                });
-                console.log('PlaceOrderCart: Successfully synced', this.items.length, 'items');
-                console.log('PlaceOrderCart: Synced items:', JSON.stringify(this.items.slice(0, 2)));
+                this.items = this._cartItems.map(item => ({
+                    productId: item.productId,
+                    productName: item.productName,
+                    imageUrl: item.imageUrl,
+                    quantity: item.quantity || 0
+                }));
             } else {
-                console.log('PlaceOrderCart: No items to sync, setting items to empty array');
                 this.items = [];
             }
         } catch (error) {
-            console.error('PlaceOrderCart: Error in syncItems:', error);
+            /* silent error */
             this.items = [];
         }
     }
     
     // 🔹 Called when + button is clicked in cart
+    // Increase item quantity in cart and notify parent.
     increaseQty(event) {
         try {
             const productId = event.target.dataset.id;
             this.updateQty(productId, 1);
             this.dispatchCartUpdateEvent();
         } catch (error) {
-            console.error('PlaceOrderCart: Error in increaseQty:', error);
+            /* silent error */
         }
     }
 
     // 🔹 Called when - button is clicked in cart
+    // Decrease item quantity in cart and notify parent.
     decreaseQty(event) {
         try {
             const productId = event.target.dataset.id;
             this.updateQty(productId, -1);
             this.dispatchCartUpdateEvent();
         } catch (error) {
-            console.error('PlaceOrderCart: Error in decreaseQty:', error);
+            /* silent error */
         }
     }
 
     // 🔹 Common function to update product quantity in cart
+    // Common function to update product quantity in cart
+    // Also keeps the backing `_cartItems` in sync so parent-setter/state remains consistent.
     updateQty(productId, change) {
         try {
             if (!this.items || !Array.isArray(this.items)) {
@@ -138,25 +135,25 @@ export default class PlaceOrderCart extends LightningElement {
                 });
             }
         } catch (error) {
-            console.error('PlaceOrderCart: Error in updateQty:', error);
+            /* silent error */
         }
     }
 
     // 🔹 Remove item from cart
+    // Remove item from cart (both display and backing store) and notify parent.
     removeFromCart(event) {
         try {
             const productId = event.target.dataset.id;
-            console.log('PlaceOrderCart: removeFromCart called for productId:', productId);
+            /* remove from cart called */
             
             if (this.items && Array.isArray(this.items)) {
                 // Remove from display items
                 this.items = this.items.filter(item => item && item.productId !== productId);
-                console.log('PlaceOrderCart: Items after filter:', this.items.length);
+                /* items filtered */
                 
                 // Also remove from backing field (_cartItems)
                 if (this._cartItems && Array.isArray(this._cartItems)) {
                     this._cartItems = this._cartItems.filter(item => item && item.productId !== productId);
-                    console.log('PlaceOrderCart: _cartItems after filter:', this._cartItems.length);
                 }
                 
                 // Notify parent that cart was updated
@@ -165,7 +162,7 @@ export default class PlaceOrderCart extends LightningElement {
                 this.showToast('Info', 'Product removed from cart', 'info');
             }
         } catch (error) {
-            console.error('PlaceOrderCart: Error in removeFromCart:', error);
+            /* silent error */
         }
     }
 
@@ -185,9 +182,10 @@ export default class PlaceOrderCart extends LightningElement {
     }
 
     // 🔹 Dispatch event to notify parent that cart was updated
+    // Notify parent container that the cart has been updated.
+    // Why: the container maintains the canonical cart state; it uses this event to update its copy.
     dispatchCartUpdateEvent() {
         try {
-            console.log('PlaceOrderCart: Dispatching cartupdate event with', this.items.length, 'items');
             this.dispatchEvent(new CustomEvent('cartupdate', {
                 detail: {
                     cartItems: this.items,
@@ -197,11 +195,12 @@ export default class PlaceOrderCart extends LightningElement {
                 composed: true
             }));
         } catch (error) {
-            console.error('PlaceOrderCart: Error in dispatchCartUpdateEvent:', error);
+            /* silent error */
         }
     }
 
     // 🔹 Navigate back to product selection
+    // Navigate back to the product selection view by informing the parent container.
     goToProductSelection() {
         try {
             this.dispatchEvent(new CustomEvent('backtoselection', { bubbles: true, composed: true }));
@@ -211,8 +210,9 @@ export default class PlaceOrderCart extends LightningElement {
     }
 
     // 🔹 Save Order - Create order and line items
+    // Call Apex to create an Order and line items; clear cart on success.
+    // Note: Apex handles validation and inventory updates.
     saveOrder() {
-        console.log('PlaceOrderCart: saveOrder called, franchiseId:', this.franchiseId, 'distributorId:', this.distributorId);
         
         if (!this.franchiseId) {
             this.showToast('Error', 'Franchise information is missing', 'error');
@@ -265,7 +265,7 @@ export default class PlaceOrderCart extends LightningElement {
         .catch(error => {
             const errorMsg = error.body?.message || error.message || 'An error occurred while creating the order';
             this.showToast('Error', errorMsg, 'error');
-            console.error('Error placing order:', error);
+            /* silent error */
         });
     }
 
@@ -273,9 +273,9 @@ export default class PlaceOrderCart extends LightningElement {
     handlePromoCodeChange(event) {
         try {
             this.promoCode = event.target.value.toUpperCase();
-            console.log('PlaceOrderCart: Promo code entered:', this.promoCode);
+            /* promo entered */
         } catch (error) {
-            console.error('PlaceOrderCart: Error in handlePromoCodeChange:', error);
+            /* silent error */
         }
     }
 
@@ -287,7 +287,7 @@ export default class PlaceOrderCart extends LightningElement {
                 return;
             }
 
-            console.log('PlaceOrderCart: Applying promo code:', this.promoCode);
+            /* applying promo code */
             
             // Here you can add logic to validate promo code with backend
             // For now, we'll just accept any non-empty promo code
@@ -295,25 +295,22 @@ export default class PlaceOrderCart extends LightningElement {
             this.hasAppliedPromo = true;
             
             this.showToast('Success', `Promo code '${this.promoCode}' has been applied!`, 'success');
-            console.log('PlaceOrderCart: Promo code applied successfully:', this.appliedPromoCode);
         } catch (error) {
             this.showToast('Error', 'Failed to apply promo code', 'error');
-            console.error('PlaceOrderCart: Error in applyPromoCode:', error);
         }
     }
 
     // 🔹 Remove applied promo code
     removePromoCode() {
         try {
-            console.log('PlaceOrderCart: Removing promo code:', this.appliedPromoCode);
             this.appliedPromoCode = '';
             this.promoCode = '';
             this.hasAppliedPromo = false;
             
             this.showToast('Info', 'Promo code has been removed', 'info');
-            console.log('PlaceOrderCart: Promo code removed');
+            /* promo removed */
         } catch (error) {
-            console.error('PlaceOrderCart: Error in removePromoCode:', error);
+            /* silent error */
         }
     }
 
@@ -329,7 +326,7 @@ export default class PlaceOrderCart extends LightningElement {
                 })
             );
         } catch (error) {
-            console.error('PlaceOrderCart: Error in showToast:', error);
+            /* silent error */
         }
     }
 }

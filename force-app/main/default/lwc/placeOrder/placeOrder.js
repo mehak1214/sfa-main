@@ -12,6 +12,13 @@ import placeOrder from '@salesforce/apex/PlaceOrderController.placeOrder';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 // Component class definition
+// Component: placeOrder
+// Purpose: UI for selecting a franchise, distributor and products.
+// - Uses @wire to load products for a selected distributor.
+// - Tracks selected quantities locally and dispatches an `addtocart` event
+//   with product details so a parent container can manage the cart.
+// Notes:
+// - Keep UI logic in this component; persistent cart state lives in the parent container.
 export default class PlaceOrder extends LightningElement {
 
     // List of products (tracked so UI updates when data changes)
@@ -52,22 +59,15 @@ export default class PlaceOrder extends LightningElement {
     }
 
     // 🔹 Automatically calls Apex method to get products based on distributor selection
+    // Why: cacheable wire gives fast reactive updates when `selectedDistributor` changes.
     @wire(getProductsByDistributor, { distributorId: '$selectedDistributor' })
     wiredProducts({ data }) {
-        console.log('PlaceOrder: wiredProducts called, data:', data ? 'received' : 'none');
         if (data) {
-            console.log('PlaceOrder: Raw Apex data:', JSON.stringify(data.slice(0, 2))); // First 2 items for debugging
-            this.products = data.map(p => {
-                console.log('PlaceOrder: Mapping product - ID:', p.productId, 'Name:', p.productName, 'Apex Qty:', p.quantity, 'Type:', typeof p.quantity);
-                return {
-                    ...p,
-                    quantity: 0
-                };
-            });
-            console.log('PlaceOrder: Products loaded and mapped:', this.products.length, 'items');
+            this.products = data.map(p => ({
+                ...p,
+                quantity: 0
+            }));
         } else {
-            // Reset products when no distributor selected
-            console.log('PlaceOrder: No products data received');
             this.products = [];
         }
     }
@@ -93,6 +93,8 @@ export default class PlaceOrder extends LightningElement {
     }
 
     // 🔹 Common function to update product quantity
+    // Why: updateQty modifies local product quantities immediately for responsive UX.
+    // Keeping quantities local avoids unnecessary Apex calls until user adds to cart.
     updateQty(productId, change) {
         this.products = this.products.map(p => {
             if (p.productId === productId) {
@@ -107,29 +109,22 @@ export default class PlaceOrder extends LightningElement {
     }
 
     // 🔹 Called when user clicks Add to Cart button
+    // Dispatch selected products to parent container as `addtocart` event.
+    // Why: the container owns the cart and orchestrates navigation between selection and cart views.
     addToCart() {
-        console.log('PlaceOrder: addToCart called');
-        
         if (!this.selectedFranchise) {
-            console.log('PlaceOrder: No franchise selected');
             this.showToast('Error', 'Please select a franchise', 'error');
             return;
         }
 
         if (!this.selectedDistributor) {
-            console.log('PlaceOrder: No distributor selected');
             this.showToast('Error', 'Please select a dealer/distributor', 'error');
             return;
         }
-
-        console.log('PlaceOrder: All products before filter:', JSON.stringify(this.products.map(p => ({ productId: p.productId, productName: p.productName, quantity: p.quantity }))));
-
         const selectedItems = this.products
             .filter(p => p.quantity > 0)
             .map(p => {
-                console.log('PlaceOrder: Processing product - ID:', p.productId, 'Name:', p.productName, 'Qty (original):', p.quantity, 'Type:', typeof p.quantity);
                 const qty = parseInt(p.quantity, 10);
-                console.log('PlaceOrder: After parseInt - Qty:', qty, 'Type:', typeof qty);
                 return {
                     productId: p.productId || '',
                     productName: p.productName || '',
@@ -137,26 +132,16 @@ export default class PlaceOrder extends LightningElement {
                     quantity: qty || 0
                 };
             });
-
-        console.log('PlaceOrder: Selected items:', JSON.stringify(selectedItems));
-        console.log('PlaceOrder: Selected items count:', selectedItems.length);
-
         if (selectedItems.length === 0) {
-            console.log('PlaceOrder: No items selected');
             this.showToast('Error', 'Please select at least one product', 'error');
             return;
         }
 
         const invalidItems = selectedItems.filter(item => !item.productId);
         if (invalidItems.length > 0) {
-            console.log('PlaceOrder: Invalid items found');
             this.showToast('Error', 'Some products have invalid IDs', 'error');
-            console.error('Invalid items:', invalidItems);
             return;
         }
-
-        console.log('PlaceOrder: Final event detail:', JSON.stringify({ franchiseId: this.selectedFranchise, distributorId: this.selectedDistributor, items: selectedItems }));
-
         // Dispatch event to parent component with cart items
         this.dispatchEvent(new CustomEvent('addtocart', {
             detail: {
@@ -167,9 +152,6 @@ export default class PlaceOrder extends LightningElement {
             bubbles: true,
             composed: true
         }));
-
-        console.log('PlaceOrder: Event dispatched successfully');
-
         this.showToast('Success', 'Products added to cart!', 'success');
 
         // Reset quantities after adding to cart
