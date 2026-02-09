@@ -29,3 +29,101 @@
     text-align: center;
     color: #1d1d1d;
 }
+
+/* Order summary modern styling */
+.summary-box {
+    background: linear-gradient(180deg, #ffffff 0%, #f9fbff 100%);
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 6px 18px rgba(20, 20, 45, 0.08);
+    border: 1px solid rgba(30, 45, 90, 0.04);
+}
+
+.summary-box h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+    color: #0b2a66;
+}
+
+.summary-header, .summary-row {
+    display: grid;
+    grid-template-columns: 2fr 0.8fr 1fr 1fr;
+    gap: 12px;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.summary-header {
+    border-bottom: 1px solid rgba(15, 30, 70, 0.06);
+    padding-bottom: 10px;
+}
+
+
+.summary-header div, .summary-row div {
+    font-size: 14px;
+}
+
+.summary-header .product-col,
+.summary-row .product-name {
+    text-align: left;
+    font-weight: 700;
+    color: #12284b;
+}
+
+.summary-header .qty-col,
+.summary-row .qty {
+    text-align: center;
+    font-weight: 600;
+    color: #1d1d1d;
+}
+
+.summary-header .unit-col,
+.summary-row .unit-price,
+.summary-header .line-col,
+.summary-row .line-total {
+    text-align: right;
+    font-weight: 600;
+    color: #1d1d1d;
+}
+
+/* Row visual separation and hover */
+.summary-row {
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(15, 30, 70, 0.04);
+}
+.summary-row:last-of-type {
+    border-bottom: none;
+}
+.summary-row:hover {
+    background: linear-gradient(90deg, rgba(240,246,255,0.6), rgba(255,255,255,0));
+}
+
+.total-line {
+    margin-top: 18px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.total-line .label {
+    margin-right: 16px;
+    font-size: 18px;
+    color: #12284b;
+    font-weight: 800;
+}
+
+.total-line .value {
+    font-size: 28px;
+    font-weight: 900;
+    color: #07204a;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .summary-header, .summary-row {
+        grid-template-columns: 1fr 0.8fr 0.9fr 0.9fr;
+    }
+    .summary-box h3 { font-size: 16px; }
+    .total-line .value { font-size: 18px; }
+}

@@ -7,6 +7,7 @@ public with sharing class PlaceOrderController {
         @AuraEnabled public Id productId;
         @AuraEnabled public String productName;
         @AuraEnabled public String imageUrl;
+        @AuraEnabled public Decimal unitPrice;
         @AuraEnabled public Integer quantity;
 
         // Default constructor
@@ -77,6 +78,25 @@ public with sharing class PlaceOrderController {
             productsById.get(link.LinkedEntityId).imageUrl =
                 '/sfc/servlet.shepherd/version/download/' +
                 link.ContentDocument.LatestPublishedVersionId;
+        }
+
+        // Fetch unit prices from the Standard Pricebook entries for these products
+        try {
+            List<PricebookEntry> pbes = [
+                SELECT Product2Id, UnitPrice, Pricebook2.IsStandard
+                FROM PricebookEntry
+                WHERE Product2Id IN :productsById.keySet()
+                AND IsActive = true
+                AND Pricebook2.IsStandard = true
+            ];
+
+            for (PricebookEntry pbe : pbes) {
+                if (productsById.containsKey(pbe.Product2Id)) {
+                    productsById.get(pbe.Product2Id).unitPrice = pbe.UnitPrice;
+                }
+            }
+        } catch (Exception ex) {
+            System.debug(' WARNING: Could not fetch PricebookEntry unit prices: ' + ex.getMessage());
         }
 
         System.debug(' getProducts() completed' +productsById.values());
@@ -166,6 +186,25 @@ public with sharing class PlaceOrderController {
             productsById.get(link.LinkedEntityId).imageUrl =
                 '/sfc/servlet.shepherd/version/download/' +
                 link.ContentDocument.LatestPublishedVersionId;
+        }
+
+        // Fetch unit prices from the Standard Pricebook entries for these products
+        try {
+            List<PricebookEntry> pbes = [
+                SELECT Product2Id, UnitPrice, Pricebook2.IsStandard
+                FROM PricebookEntry
+                WHERE Product2Id IN :productsById.keySet()
+                AND IsActive = true
+                AND Pricebook2.IsStandard = true
+            ];
+
+            for (PricebookEntry pbe : pbes) {
+                if (productsById.containsKey(pbe.Product2Id)) {
+                    productsById.get(pbe.Product2Id).unitPrice = pbe.UnitPrice;
+                }
+            }
+        } catch (Exception ex) {
+            System.debug(' WARNING: Could not fetch PricebookEntry unit prices: ' + ex.getMessage());
         }
 
         System.debug(' getProductsByDistributor() completed' + productsById.values());
@@ -273,11 +312,49 @@ public with sharing class PlaceOrderController {
 
         System.debug(' Total wrapped products: ' + wrappedProducts.size());
 
+        // Build a map of ProductId -> total ordered quantity (used for pricing and inventory)
+        Map<Id, Integer> productQtyMapForProcessing = new Map<Id, Integer>();
+        for (ProductOrderWrapper p : wrappedProducts) {
+            if (p == null || p.productId == null || p.quantity == null) continue;
+            Integer existing = productQtyMapForProcessing.containsKey(p.productId) ? productQtyMapForProcessing.get(p.productId) : 0;
+            productQtyMapForProcessing.put(p.productId, existing + p.quantity);
+        }
+
+        // Calculate total price using UnitPrice from Standard Pricebook
+        Decimal totalOrderPrice = 0;
+        try {
+            if (!productQtyMapForProcessing.isEmpty()) {
+                List<PricebookEntry> pbesForCalc = [
+                    SELECT Product2Id, UnitPrice, Pricebook2.IsStandard
+                    FROM PricebookEntry
+                    WHERE Product2Id IN :productQtyMapForProcessing.keySet()
+                    AND IsActive = true
+                    AND Pricebook2.IsStandard = true
+                ];
+
+                Map<Id, Decimal> unitPriceByProduct = new Map<Id, Decimal>();
+                for (PricebookEntry pbe : pbesForCalc) {
+                    if (!unitPriceByProduct.containsKey(pbe.Product2Id)) {
+                        unitPriceByProduct.put(pbe.Product2Id, pbe.UnitPrice == null ? 0 : pbe.UnitPrice);
+                    }
+                }
+
+                for (Id pid : productQtyMapForProcessing.keySet()) {
+                    Integer qty = productQtyMapForProcessing.get(pid) == null ? 0 : productQtyMapForProcessing.get(pid);
+                    Decimal unit = unitPriceByProduct.containsKey(pid) ? unitPriceByProduct.get(pid) : 0;
+                    totalOrderPrice += unit * qty;
+                }
+            }
+        } catch (Exception ex) {
+            System.debug(' WARNING: Failed to calculate total order price: ' + ex.getMessage());
+        }
+
         /* ---------- CREATE ORDER ---------- */
         ibfsa__Order__c order = new ibfsa__Order__c(
             ibfsa__Franchises__c   = franchiseId,
             ibfsa__Distributer__c  = distributorId,
-            ibfsa__Order_Date__c   = Date.today()
+            ibfsa__Order_Date__c   = Date.today(),
+            ibfsa__Total_Price__c  = totalOrderPrice
         );
 
         insert order;
@@ -336,52 +413,44 @@ public with sharing class PlaceOrderController {
             );
         }
 
-        /* ---------- UPDATE INVENTORY STOCK ---------- */
-        System.debug(' Starting inventory stock update for distributor: ' + distributorId);
-        
-        // Build a map of product IDs to ordered quantities
-        Map<Id, Integer> productQtyMap = new Map<Id, Integer>();
-        for (ProductOrderWrapper product : wrappedProducts) {
-            if (product.productId != null && product.quantity > 0) {
-                productQtyMap.put(product.productId, product.quantity);
+        /* ---------- UPDATE INVENTORY AVAILABLE STOCK ---------- */
+        try {
+            // Build a map of ProductId -> total ordered quantity
+            Map<Id, Integer> productQtyMap = new Map<Id, Integer>();
+            for (ProductOrderWrapper p : wrappedProducts) {
+                if (p == null || p.productId == null || p.quantity == null) continue;
+                Integer existing = productQtyMap.containsKey(p.productId) ? productQtyMap.get(p.productId) : 0;
+                productQtyMap.put(p.productId, existing + p.quantity);
             }
-        }
-        
-        System.debug(' Product Quantity Map: ' + productQtyMap);
-        
-        if (!productQtyMap.isEmpty()) {
-            // Get inventory items for this distributor and these products
-            List<ibfsa__Inventory_Item__c> inventoryItemsToUpdate = [
-                SELECT Id, ibfsa__Product__c, ibfsa__AvailableStock__c
-                FROM ibfsa__Inventory_Item__c
-                WHERE ibfsa__Inventory__c IN (
-                    SELECT Id FROM ibfsa__Inventory__c WHERE ibfsa__Dealer__c = :distributorId
-                )
-                AND ibfsa__Product__c IN :productQtyMap.keySet()
-            ];
-            
-            System.debug(' Inventory items found for update: ' + inventoryItemsToUpdate.size());
-            
-            // Update available stock for each inventory item
-            for (ibfsa__Inventory_Item__c invItem : inventoryItemsToUpdate) {
-                Integer orderedQty = productQtyMap.get(invItem.ibfsa__Product__c);
-                Decimal currentStock = invItem.ibfsa__AvailableStock__c != null ? invItem.ibfsa__AvailableStock__c : 0;
-                Decimal newStock = currentStock - orderedQty;
-                
-                System.debug(' Updating inventory item: ' + invItem.Id + 
-                             ' | Product: ' + invItem.ibfsa__Product__c +
-                             ' | Current Stock: ' + currentStock + 
-                             ' | Ordered Qty: ' + orderedQty + 
-                             ' | New Stock: ' + newStock);
-                
-                invItem.ibfsa__AvailableStock__c = newStock;
+
+            if (!productQtyMap.isEmpty()) {
+                // Query inventory items for the distributor's inventories matching these products
+                List<ibfsa__Inventory_Item__c> invItems = [
+                    SELECT Id, ibfsa__Product__c, ibfsa__AvailableStock__c
+                    FROM ibfsa__Inventory_Item__c
+                    WHERE ibfsa__Inventory__c IN (
+                        SELECT Id FROM ibfsa__Inventory__c WHERE ibfsa__Dealer__c = :distributorId
+                    )
+                    AND ibfsa__Product__c IN :productQtyMap.keySet()
+                ];
+
+                // Subtract ordered quantities from available stock (do not allow negative stock)
+                for (ibfsa__Inventory_Item__c inv : invItems) {
+                    Integer orderedQty = productQtyMap.get(inv.ibfsa__Product__c);
+                    Integer currentStock = inv.ibfsa__AvailableStock__c == null ? 0 : inv.ibfsa__AvailableStock__c.intValue();
+                    Integer newStock = currentStock - (orderedQty == null ? 0 : orderedQty);
+                    if (newStock < 0) newStock = 0;
+                    inv.ibfsa__AvailableStock__c = newStock;
+                }
+
+                if (!invItems.isEmpty()) {
+                    update invItems;
+                    System.debug(' Inventory updated for ' + invItems.size() + ' inventory items');
+                }
             }
-            
-            // Update inventory items in database
-            if (!inventoryItemsToUpdate.isEmpty()) {
-                update inventoryItemsToUpdate;
-                System.debug(' SUCCESS: ' + inventoryItemsToUpdate.size() + ' inventory items updated with reduced stock');
-            }
+        } catch (Exception ex) {
+            System.debug(' WARNING: Failed to update inventory stock: ' + ex.getMessage());
+            // Do not block order placement for inventory update failures, but surface a warning
         }
 
         System.debug(' placeOrder() completed successfully. Order ID: ' + order.Id);

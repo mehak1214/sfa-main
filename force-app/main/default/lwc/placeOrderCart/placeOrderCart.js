@@ -65,7 +65,8 @@ export default class PlaceOrderCart extends LightningElement {
                     productId: item.productId,
                     productName: item.productName,
                     imageUrl: item.imageUrl,
-                    quantity: item.quantity || 0
+                    quantity: item.quantity || 0,
+                    unitPrice: item.unitPrice || item.price || 0
                 }));
             } else {
                 this.items = [];
@@ -173,7 +174,7 @@ export default class PlaceOrderCart extends LightningElement {
 
     // 🔹 Calculate total cost (placeholder - would need actual pricing)
     get totalPrice() {
-        return this.items && Array.isArray(this.items) ? this.items.reduce((total, item) => total + ((item.quantity || 0) * (item.price || 0)), 0) : 0;
+        return this.items && Array.isArray(this.items) ? this.items.reduce((total, item) => total + ((item.quantity || 0) * (item.unitPrice || 0)), 0) : 0;
     }
 
     // 🔹 Check if promo code input is empty

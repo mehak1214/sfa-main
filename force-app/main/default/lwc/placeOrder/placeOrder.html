@@ -57,11 +57,40 @@
             </template>
         </div>
 
+        <!-- Summary of selected products -->
+        <template if:true={selectedItemsForSummary.length}>
+            <div class="slds-p-around_medium summary-box">
+                <h3 class="slds-text-heading_small">Order Summary</h3>
+                <div class="slds-m-top_small">
+                    <div class="summary-header">
+                        <div class="product-col">Product</div>
+                        <div class="qty-col">Qty</div>
+                        <div class="unit-col">Unit Price</div>
+                        <div class="line-col">Line Total</div>
+                    </div>
+
+                    <template for:each={selectedItemsForSummary} for:item="item">
+                        <div key={item.productId} class="summary-row">
+                            <div class="product-name">{item.productName}</div>
+                            <div class="qty">{item.quantity}</div>
+                            <div class="unit-price">{item.unitPriceDisplay}</div>
+                            <div class="line-total">{item.lineTotalDisplay}</div>
+                        </div>
+                    </template>
+
+                </div>
+                <div class="total-line">
+                    <div class="label">Total</div>
+                    <div class="value">{computedTotalPriceDisplay}</div>
+                </div>
+            </div>
+        </template>
+
         <div class="slds-align_absolute-center slds-p-around_medium">
             <lightning-button
                 variant="brand"
-                label="Add to Cart"
-                onclick={addToCart}>
+                label="Place Order"
+                onclick={saveOrder}>
             </lightning-button>
         </div>
 

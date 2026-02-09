@@ -12,13 +12,6 @@ import placeOrder from '@salesforce/apex/PlaceOrderController.placeOrder';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 // Component class definition
-// Component: placeOrder
-// Purpose: UI for selecting a franchise, distributor and products.
-// - Uses @wire to load products for a selected distributor.
-// - Tracks selected quantities locally and dispatches an `addtocart` event
-//   with product details so a parent container can manage the cart.
-// Notes:
-// - Keep UI logic in this component; persistent cart state lives in the parent container.
 export default class PlaceOrder extends LightningElement {
 
     // List of products (tracked so UI updates when data changes)
@@ -31,10 +24,10 @@ export default class PlaceOrder extends LightningElement {
     @track distributorOptions = [];
 
     // Stores the selected franchise Id
-    @track selectedFranchise;
+    selectedFranchise;
 
     // Stores the selected distributor Id
-    @track selectedDistributor;
+    selectedDistributor;
 
     // 🔹 Automatically calls Apex method to get franchise accounts
     @wire(getFranchiseAccounts)
@@ -59,17 +52,48 @@ export default class PlaceOrder extends LightningElement {
     }
 
     // 🔹 Automatically calls Apex method to get products based on distributor selection
-    // Why: cacheable wire gives fast reactive updates when `selectedDistributor` changes.
     @wire(getProductsByDistributor, { distributorId: '$selectedDistributor' })
     wiredProducts({ data }) {
         if (data) {
             this.products = data.map(p => ({
                 ...p,
-                quantity: 0
+                quantity: 0,
+                unitPrice: p.unitPrice == null ? 0 : p.unitPrice
             }));
         } else {
+            // Reset products when no distributor selected
             this.products = [];
         }
+    }
+
+    // 🔹 Returns selected products (quantity > 0) with computed line totals
+    get selectedItemsForSummary() {
+        return this.products
+            .filter(p => p.quantity > 0)
+            .map(p => {
+                const unit = Number(p.unitPrice || 0);
+                const qty = Number(p.quantity || 0);
+                const line = unit * qty;
+                return {
+                    productId: p.productId,
+                    productName: p.productName,
+                    quantity: qty,
+                    unitPrice: unit,
+                    lineTotal: line,
+                    unitPriceDisplay: unit.toFixed(2),
+                    lineTotalDisplay: line.toFixed(2)
+                };
+            });
+    }
+
+    // 🔹 Total price across selected products
+    get computedTotalPrice() {
+        return this.selectedItemsForSummary.reduce((sum, item) => sum + (item.lineTotal || 0), 0);
+    }
+
+    // Formatted total price for display
+    get computedTotalPriceDisplay() {
+        return Number(this.computedTotalPrice || 0).toFixed(2);
     }
 
     // 🔹 Called when user selects a franchise from dropdown
@@ -93,8 +117,6 @@ export default class PlaceOrder extends LightningElement {
     }
 
     // 🔹 Common function to update product quantity
-    // Why: updateQty modifies local product quantities immediately for responsive UX.
-    // Keeping quantities local avoids unnecessary Apex calls until user adds to cart.
     updateQty(productId, change) {
         this.products = this.products.map(p => {
             if (p.productId === productId) {
@@ -108,10 +130,8 @@ export default class PlaceOrder extends LightningElement {
         });
     }
 
-    // 🔹 Called when user clicks Add to Cart button
-    // Dispatch selected products to parent container as `addtocart` event.
-    // Why: the container owns the cart and orchestrates navigation between selection and cart views.
-    addToCart() {
+    // 🔹 Called when user clicks Save Order button
+    saveOrder() {
         if (!this.selectedFranchise) {
             this.showToast('Error', 'Please select a franchise', 'error');
             return;
@@ -121,17 +141,16 @@ export default class PlaceOrder extends LightningElement {
             this.showToast('Error', 'Please select a dealer/distributor', 'error');
             return;
         }
+
         const selectedItems = this.products
             .filter(p => p.quantity > 0)
-            .map(p => {
-                const qty = parseInt(p.quantity, 10);
-                return {
-                    productId: p.productId || '',
-                    productName: p.productName || '',
-                    imageUrl: p.imageUrl || '',
-                    quantity: qty || 0
-                };
-            });
+            .map(p => ({
+                productId: p.productId || '',
+                productName: p.productName || '',
+                imageUrl: p.imageUrl || '',
+                quantity: parseInt(p.quantity, 10) || 0
+            }));
+
         if (selectedItems.length === 0) {
             this.showToast('Error', 'Please select at least one product', 'error');
             return;
@@ -140,25 +159,33 @@ export default class PlaceOrder extends LightningElement {
         const invalidItems = selectedItems.filter(item => !item.productId);
         if (invalidItems.length > 0) {
             this.showToast('Error', 'Some products have invalid IDs', 'error');
+            console.error('Invalid items:', invalidItems);
             return;
         }
-        // Dispatch event to parent component with cart items
-        this.dispatchEvent(new CustomEvent('addtocart', {
-            detail: {
-                franchiseId: this.selectedFranchise,
-                distributorId: this.selectedDistributor,
-                items: selectedItems
-            },
-            bubbles: true,
-            composed: true
-        }));
-        this.showToast('Success', 'Products added to cart!', 'success');
 
-        // Reset quantities after adding to cart
-        this.products = this.products.map(p => ({
-            ...p,
-            quantity: 0
-        }));
+        placeOrder({
+            franchiseId: this.selectedFranchise,
+            distributorId: this.selectedDistributor,
+            selectedProducts: selectedItems
+        })
+        .then((result) => {
+            this.showToast(
+                'Success',
+                'Order created successfully with ID: ' + result,
+                'success'
+            );
+            this.products = this.products.map(p => ({
+                ...p,
+                quantity: 0
+            }));
+            this.selectedFranchise = undefined;
+            this.selectedDistributor = undefined;
+        })
+        .catch(error => {
+            const errorMsg = error.body?.message || error.message || 'An error occurred while creating the order';
+            this.showToast('Error', errorMsg, 'error');
+            console.error('Error placing order:', error);
+        });
     }
 
     // 🔹 Reusable function to show toast messages (works on desktop & mobile)
