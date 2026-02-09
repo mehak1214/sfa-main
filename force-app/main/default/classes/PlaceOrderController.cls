@@ -336,6 +336,54 @@ public with sharing class PlaceOrderController {
             );
         }
 
+        /* ---------- UPDATE INVENTORY STOCK ---------- */
+        System.debug(' Starting inventory stock update for distributor: ' + distributorId);
+        
+        // Build a map of product IDs to ordered quantities
+        Map<Id, Integer> productQtyMap = new Map<Id, Integer>();
+        for (ProductOrderWrapper product : wrappedProducts) {
+            if (product.productId != null && product.quantity > 0) {
+                productQtyMap.put(product.productId, product.quantity);
+            }
+        }
+        
+        System.debug(' Product Quantity Map: ' + productQtyMap);
+        
+        if (!productQtyMap.isEmpty()) {
+            // Get inventory items for this distributor and these products
+            List<ibfsa__Inventory_Item__c> inventoryItemsToUpdate = [
+                SELECT Id, ibfsa__Product__c, ibfsa__AvailableStock__c
+                FROM ibfsa__Inventory_Item__c
+                WHERE ibfsa__Inventory__c IN (
+                    SELECT Id FROM ibfsa__Inventory__c WHERE ibfsa__Dealer__c = :distributorId
+                )
+                AND ibfsa__Product__c IN :productQtyMap.keySet()
+            ];
+            
+            System.debug(' Inventory items found for update: ' + inventoryItemsToUpdate.size());
+            
+            // Update available stock for each inventory item
+            for (ibfsa__Inventory_Item__c invItem : inventoryItemsToUpdate) {
+                Integer orderedQty = productQtyMap.get(invItem.ibfsa__Product__c);
+                Decimal currentStock = invItem.ibfsa__AvailableStock__c != null ? invItem.ibfsa__AvailableStock__c : 0;
+                Decimal newStock = currentStock - orderedQty;
+                
+                System.debug(' Updating inventory item: ' + invItem.Id + 
+                             ' | Product: ' + invItem.ibfsa__Product__c +
+                             ' | Current Stock: ' + currentStock + 
+                             ' | Ordered Qty: ' + orderedQty + 
+                             ' | New Stock: ' + newStock);
+                
+                invItem.ibfsa__AvailableStock__c = newStock;
+            }
+            
+            // Update inventory items in database
+            if (!inventoryItemsToUpdate.isEmpty()) {
+                update inventoryItemsToUpdate;
+                System.debug(' SUCCESS: ' + inventoryItemsToUpdate.size() + ' inventory items updated with reduced stock');
+            }
+        }
+
         System.debug(' placeOrder() completed successfully. Order ID: ' + order.Id);
         return order.Id;
     }
