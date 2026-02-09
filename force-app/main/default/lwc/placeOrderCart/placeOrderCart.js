@@ -34,6 +34,11 @@ export default class PlaceOrderCart extends LightningElement {
     // Track items locally
     @track items = [];
     
+    // Promo code tracking
+    @track promoCode = '';
+    @track appliedPromoCode = '';
+    @track hasAppliedPromo = false;
+    
     connectedCallback() {
         console.log('PlaceOrderCart: connectedCallback - cartItems:', this.cartItems ? this.cartItems.length : 0);
     }
@@ -136,6 +141,11 @@ export default class PlaceOrderCart extends LightningElement {
         return this.items && Array.isArray(this.items) ? this.items.reduce((total, item) => total + ((item.quantity || 0) * (item.price || 0)), 0) : 0;
     }
 
+    // 🔹 Check if promo code input is empty
+    get isPromoCodeEmpty() {
+        return !this.promoCode || this.promoCode.trim() === '';
+    }
+
     // 🔹 Navigate back to product selection
     goToProductSelection() {
         try {
@@ -202,6 +212,54 @@ export default class PlaceOrderCart extends LightningElement {
             this.showToast('Error', errorMsg, 'error');
             console.error('Error placing order:', error);
         });
+    }
+
+    // 🔹 Handle promo code input change
+    handlePromoCodeChange(event) {
+        try {
+            this.promoCode = event.target.value.toUpperCase();
+            console.log('PlaceOrderCart: Promo code entered:', this.promoCode);
+        } catch (error) {
+            console.error('PlaceOrderCart: Error in handlePromoCodeChange:', error);
+        }
+    }
+
+    // 🔹 Apply promo code
+    applyPromoCode() {
+        try {
+            if (!this.promoCode || this.promoCode.trim() === '') {
+                this.showToast('Error', 'Please enter a promo code', 'error');
+                return;
+            }
+
+            console.log('PlaceOrderCart: Applying promo code:', this.promoCode);
+            
+            // Here you can add logic to validate promo code with backend
+            // For now, we'll just accept any non-empty promo code
+            this.appliedPromoCode = this.promoCode;
+            this.hasAppliedPromo = true;
+            
+            this.showToast('Success', `Promo code '${this.promoCode}' has been applied!`, 'success');
+            console.log('PlaceOrderCart: Promo code applied successfully:', this.appliedPromoCode);
+        } catch (error) {
+            this.showToast('Error', 'Failed to apply promo code', 'error');
+            console.error('PlaceOrderCart: Error in applyPromoCode:', error);
+        }
+    }
+
+    // 🔹 Remove applied promo code
+    removePromoCode() {
+        try {
+            console.log('PlaceOrderCart: Removing promo code:', this.appliedPromoCode);
+            this.appliedPromoCode = '';
+            this.promoCode = '';
+            this.hasAppliedPromo = false;
+            
+            this.showToast('Info', 'Promo code has been removed', 'info');
+            console.log('PlaceOrderCart: Promo code removed');
+        } catch (error) {
+            console.error('PlaceOrderCart: Error in removePromoCode:', error);
+        }
     }
 
     // 🔹 Reusable function to show toast messages (works on desktop & mobile)

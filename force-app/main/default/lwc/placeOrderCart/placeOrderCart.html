@@ -55,6 +55,45 @@
                         <div class="slds-col slds-size_1-of-1 slds-text-align_center">
                             <p>Total Items: {totalItems}</p>
                         </div>
+                        
+                        <!-- Promo Code Section -->
+                        <div class="slds-col slds-size_1-of-1 slds-m-top_medium slds-box slds-theme_shade slds-p-around_small">
+                            <div class="slds-grid slds-wrap slds-align_absolute-center">
+                                <div class="slds-col slds-size_1-of-1 slds-medium-size_2-of-3 slds-p-around_x-small">
+                                    <lightning-input 
+                                        type="text" 
+                                        label="Promo Code" 
+                                        placeholder="Enter promo code"
+                                        value={promoCode}
+                                        onchange={handlePromoCodeChange}
+                                        disabled={hasAppliedPromo}>
+                                    </lightning-input>
+                                </div>
+                                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3 slds-p-around_x-small slds-text-align_center">
+                                    <template if:false={hasAppliedPromo}>
+                                        <lightning-button 
+                                            label="Apply" 
+                                            variant="neutral" 
+                                            onclick={applyPromoCode}
+                                            disabled={isPromoCodeEmpty}>
+                                        </lightning-button>
+                                    </template>
+                                    <template if:true={hasAppliedPromo}>
+                                        <lightning-button 
+                                            label="Remove" 
+                                            variant="destructive" 
+                                            onclick={removePromoCode}>
+                                        </lightning-button>
+                                    </template>
+                                </div>
+                            </div>
+                            <template if:true={hasAppliedPromo}>
+                                <div class="slds-m-top_small slds-text-align_center">
+                                    <p class="slds-text-color_success">✓ Promo Code Applied: <strong>{appliedPromoCode}</strong></p>
+                                </div>
+                            </template>
+                        </div>
+                        
                         <div class="slds-col slds-size_1-of-1 slds-text-align_center slds-m-top_small">
                             <lightning-button 
                                 label="Back to Product Selection" 
