@@ -3,7 +3,9 @@ import { LightningElement, track, wire } from 'lwc';
 
 // Import Apex methods (backend calls)
 import getFranchiseAccounts from '@salesforce/apex/PlaceOrderController.getFranchiseAccounts';
+import getDealerDistributorAccounts from '@salesforce/apex/PlaceOrderController.getDealerDistributorAccounts';
 import getProducts from '@salesforce/apex/PlaceOrderController.getProducts';
+import getProductsByDistributor from '@salesforce/apex/PlaceOrderController.getProductsByDistributor';
 import placeOrder from '@salesforce/apex/PlaceOrderController.placeOrder';
 
 // Import toast event to show success/error messages
@@ -18,8 +20,14 @@ export default class PlaceOrder extends LightningElement {
     // Franchise options for dropdown
     @track franchiseOptions = [];
 
+    // Distributor options for dropdown
+    @track distributorOptions = [];
+
     // Stores the selected franchise Id
     selectedFranchise;
+
+    // Stores the selected distributor Id
+    selectedDistributor;
 
     // 🔹 Automatically calls Apex method to get franchise accounts
     @wire(getFranchiseAccounts)
@@ -32,20 +40,55 @@ export default class PlaceOrder extends LightningElement {
         }
     }
 
-    // 🔹 Automatically calls Apex method to get products
-    @wire(getProducts)
+    // 🔹 Automatically calls Apex method to get dealer/distributor accounts
+    @wire(getDealerDistributorAccounts)
+    wiredDistributors({ data }) {
+        if (data) {
+            this.distributorOptions = data.map(acc => ({
+                label: acc.Name,
+                value: acc.Id
+            }));
+        }
+    }
+
+    // 🔹 Automatically calls Apex method to get products based on distributor selection
+    @wire(getProductsByDistributor, { distributorId: '$selectedDistributor' })
     wiredProducts({ data }) {
         if (data) {
             this.products = data.map(p => ({
                 ...p,
                 quantity: 0
             }));
+        } else {
+            // If no distributor selected, show all products
+            if (!this.selectedDistributor) {
+                this.wiredProductsAll();
+            }
         }
+    }
+
+    // 🔹 Fallback method to get all products when no distributor is selected
+    wiredProductsAll() {
+        getProducts().then(data => {
+            if (data) {
+                this.products = data.map(p => ({
+                    ...p,
+                    quantity: 0
+                }));
+            }
+        }).catch(error => {
+            console.error('Error loading all products:', error);
+        });
     }
 
     // 🔹 Called when user selects a franchise from dropdown
     handleFranchiseChange(event) {
         this.selectedFranchise = event.detail.value;
+    }
+
+    // 🔹 Called when user selects a distributor from dropdown
+    handleDistributorChange(event) {
+        this.selectedDistributor = event.detail.value;
     }
 
     // 🔹 Called when + button is clicked
@@ -79,6 +122,11 @@ export default class PlaceOrder extends LightningElement {
             return;
         }
 
+        if (!this.selectedDistributor) {
+            this.showToast('Error', 'Please select a dealer/distributor', 'error');
+            return;
+        }
+
         const selectedItems = this.products
             .filter(p => p.quantity > 0)
             .map(p => ({
@@ -102,6 +150,7 @@ export default class PlaceOrder extends LightningElement {
 
         placeOrder({
             franchiseId: this.selectedFranchise,
+            distributorId: this.selectedDistributor,
             selectedProducts: selectedItems
         })
         .then((result) => {
@@ -115,6 +164,7 @@ export default class PlaceOrder extends LightningElement {
                 quantity: 0
             }));
             this.selectedFranchise = undefined;
+            this.selectedDistributor = undefined;
         })
         .catch(error => {
             const errorMsg = error.body?.message || error.message || 'An error occurred while creating the order';

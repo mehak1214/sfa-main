@@ -84,6 +84,95 @@ public with sharing class PlaceOrderController {
     }
 
     /* =========================================================
+       LOAD PRODUCTS BY DISTRIBUTOR
+       ========================================================= */
+    @AuraEnabled(cacheable=true)
+    public static List<ProductOrderWrapper> getProductsByDistributor(Id distributorId) {
+        System.debug(' getProductsByDistributor() called with distributorId: ' + distributorId);
+
+        if (distributorId == null) {
+            System.debug(' ERROR: Distributor ID is null');
+            return new List<ProductOrderWrapper>();
+        }
+
+        // Get all inventory items related to the distributor
+        List<ibfsa__Inventory_Item__c> inventoryItems = [
+            SELECT Id, ibfsa__Product__c
+            FROM ibfsa__Inventory_Item__c
+            WHERE ibfsa__Inventory__c IN (
+                SELECT Id FROM ibfsa__Inventory__c WHERE ibfsa__Dealer__c = :distributorId
+            )
+            AND ibfsa__Product__c != null
+        ];
+
+        System.debug(' Inventory items found: ' + inventoryItems.size());
+
+        // Get unique product IDs from inventory items
+        Set<Id> productIds = new Set<Id>();
+        for (ibfsa__Inventory_Item__c item : inventoryItems) {
+            productIds.add(item.ibfsa__Product__c);
+        }
+
+        if (productIds.isEmpty()) {
+            System.debug(' No products found for distributor');
+            return new List<ProductOrderWrapper>();
+        }
+
+        // Get product details
+        List<Product2> products = [
+            SELECT Id, Name
+            FROM Product2
+            WHERE Id IN :productIds
+            AND IsActive = true
+            AND ibfsa__Is_Vashi_Product__c = true
+        ];
+
+        System.debug(' Products fetched: ' + products.size());
+
+        Map<Id, ProductOrderWrapper> productsById = new Map<Id, ProductOrderWrapper>();
+        
+        for (Product2 product : products) {
+            System.debug(' Wrapping product: ' + product.Id + ' | ' + product.Name);
+
+            ProductOrderWrapper wrapper = new ProductOrderWrapper();
+            wrapper.productId   = product.Id;
+            wrapper.productName = product.Name;
+            wrapper.quantity    = 0;
+
+            productsById.put(product.Id, wrapper);
+        }
+
+        if (productsById.isEmpty()) {
+            System.debug(' No Vashi products found');
+            return new List<ProductOrderWrapper>();
+        }
+
+        List<ContentDocumentLink> imageLinks = [
+            SELECT LinkedEntityId, ContentDocument.LatestPublishedVersionId
+            FROM ContentDocumentLink
+            WHERE LinkedEntityId IN :productsById.keySet()
+        ];
+
+        System.debug(' Image links found: ' + imageLinks.size());
+
+        for (ContentDocumentLink link : imageLinks) {
+            System.debug(
+                ' Linking image to product ' +
+                link.LinkedEntityId +
+                ' | VersionId: ' +
+                link.ContentDocument.LatestPublishedVersionId
+            );
+
+            productsById.get(link.LinkedEntityId).imageUrl =
+                '/sfc/servlet.shepherd/version/download/' +
+                link.ContentDocument.LatestPublishedVersionId;
+        }
+
+        System.debug(' getProductsByDistributor() completed' + productsById.values());
+        return productsById.values();
+    }
+
+    /* =========================================================
        LOAD FRANCHISE ACCOUNTS
        ========================================================= */
     @AuraEnabled(cacheable=true)
@@ -102,11 +191,30 @@ public with sharing class PlaceOrderController {
     }
 
     /* =========================================================
+       LOAD DEALER / DISTRIBUTOR ACCOUNTS
+       ========================================================= */
+    @AuraEnabled(cacheable=true)
+    public static List<Account> getDealerDistributorAccounts() {
+        System.debug(' getDealerDistributorAccounts() called');
+
+        List<Account> accts = [
+            SELECT Id, Name
+            FROM Account
+            WHERE RecordType.DeveloperName = 'Dealer_Distributor'
+            ORDER BY Name
+        ];
+
+        System.debug(' Dealer/Distributor accounts found: ' + accts.size());
+        return accts;
+    }
+
+    /* =========================================================
        PLACE ORDER + LINE ITEMS
        ========================================================= */
     @AuraEnabled
     public static Id placeOrder(
         Id franchiseId,
+        Id distributorId,
         List<Map<String, Object>> selectedProducts
     ) {
 
@@ -119,6 +227,12 @@ public with sharing class PlaceOrderController {
             System.debug(' ERROR: Franchise ID is NULL');
             throw new AuraHandledException(
                 'Please select a franchise before placing the order.'
+            );
+        }
+        if (distributorId == null) {
+            System.debug(' ERROR: Distributor ID is NULL');
+            throw new AuraHandledException(
+                'Please select a dealer/distributor before placing the order.'
             );
         }
 
@@ -161,8 +275,9 @@ public with sharing class PlaceOrderController {
 
         /* ---------- CREATE ORDER ---------- */
         ibfsa__Order__c order = new ibfsa__Order__c(
-            ibfsa__Franchises__c = franchiseId,
-            ibfsa__Order_Date__c = Date.today()
+            ibfsa__Franchises__c   = franchiseId,
+            ibfsa__Distributer__c  = distributorId,
+            ibfsa__Order_Date__c   = Date.today()
         );
 
         insert order;
