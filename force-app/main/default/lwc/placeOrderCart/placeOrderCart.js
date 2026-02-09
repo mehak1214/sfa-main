@@ -14,8 +14,10 @@ export default class PlaceOrderCart extends LightningElement {
     set cartItems(value) {
         try {
             console.log('PlaceOrderCart: cartItems setter called with:', value ? value.length : 0, 'items');
+            console.log('PlaceOrderCart: cartItems setter data:', JSON.stringify(value ? value.slice(0, 2) : [])); // Show first 2 items
             this._cartItems = Array.isArray(value) ? [...value] : [];
             console.log('PlaceOrderCart: cartItems set to:', this._cartItems.length, 'items');
+            console.log('PlaceOrderCart: _cartItems data after set:', JSON.stringify(this._cartItems.slice(0, 2)));
             this.syncItems();
         } catch (error) {
             console.error('PlaceOrderCart: Error in cartItems setter:', error);
@@ -58,14 +60,19 @@ export default class PlaceOrderCart extends LightningElement {
     syncItems() {
         try {
             console.log('PlaceOrderCart: syncItems called, _cartItems length:', this._cartItems ? this._cartItems.length : 0);
+            console.log('PlaceOrderCart: syncItems _cartItems data:', JSON.stringify(this._cartItems ? this._cartItems.slice(0, 2) : []));
             if (this._cartItems && Array.isArray(this._cartItems) && this._cartItems.length > 0) {
-                this.items = this._cartItems.map(item => ({
-                    productId: item.productId,
-                    productName: item.productName,
-                    imageUrl: item.imageUrl,
-                    quantity: item.quantity || 0
-                }));
+                this.items = this._cartItems.map(item => {
+                    console.log('PlaceOrderCart: syncItems mapping item - ID:', item.productId, 'Qty received:', item.quantity, 'Type:', typeof item.quantity);
+                    return {
+                        productId: item.productId,
+                        productName: item.productName,
+                        imageUrl: item.imageUrl,
+                        quantity: item.quantity || 0
+                    };
+                });
                 console.log('PlaceOrderCart: Successfully synced', this.items.length, 'items');
+                console.log('PlaceOrderCart: Synced items:', JSON.stringify(this.items.slice(0, 2)));
             } else {
                 console.log('PlaceOrderCart: No items to sync, setting items to empty array');
                 this.items = [];
@@ -81,6 +88,7 @@ export default class PlaceOrderCart extends LightningElement {
         try {
             const productId = event.target.dataset.id;
             this.updateQty(productId, 1);
+            this.dispatchCartUpdateEvent();
         } catch (error) {
             console.error('PlaceOrderCart: Error in increaseQty:', error);
         }
@@ -91,6 +99,7 @@ export default class PlaceOrderCart extends LightningElement {
         try {
             const productId = event.target.dataset.id;
             this.updateQty(productId, -1);
+            this.dispatchCartUpdateEvent();
         } catch (error) {
             console.error('PlaceOrderCart: Error in decreaseQty:', error);
         }
@@ -114,6 +123,20 @@ export default class PlaceOrderCart extends LightningElement {
                 }
                 return item;
             });
+            
+            // Also update _cartItems to keep in sync
+            if (this._cartItems && Array.isArray(this._cartItems)) {
+                this._cartItems = this._cartItems.map(item => {
+                    if (item && item.productId === productId) {
+                        let qty = (item.quantity || 0) + change;
+                        return {
+                            ...item,
+                            quantity: qty < 0 ? 0 : qty
+                        };
+                    }
+                    return item;
+                });
+            }
         } catch (error) {
             console.error('PlaceOrderCart: Error in updateQty:', error);
         }
@@ -123,8 +146,23 @@ export default class PlaceOrderCart extends LightningElement {
     removeFromCart(event) {
         try {
             const productId = event.target.dataset.id;
+            console.log('PlaceOrderCart: removeFromCart called for productId:', productId);
+            
             if (this.items && Array.isArray(this.items)) {
+                // Remove from display items
                 this.items = this.items.filter(item => item && item.productId !== productId);
+                console.log('PlaceOrderCart: Items after filter:', this.items.length);
+                
+                // Also remove from backing field (_cartItems)
+                if (this._cartItems && Array.isArray(this._cartItems)) {
+                    this._cartItems = this._cartItems.filter(item => item && item.productId !== productId);
+                    console.log('PlaceOrderCart: _cartItems after filter:', this._cartItems.length);
+                }
+                
+                // Notify parent that cart was updated
+                this.dispatchCartUpdateEvent();
+                
+                this.showToast('Info', 'Product removed from cart', 'info');
             }
         } catch (error) {
             console.error('PlaceOrderCart: Error in removeFromCart:', error);
@@ -144,6 +182,23 @@ export default class PlaceOrderCart extends LightningElement {
     // 🔹 Check if promo code input is empty
     get isPromoCodeEmpty() {
         return !this.promoCode || this.promoCode.trim() === '';
+    }
+
+    // 🔹 Dispatch event to notify parent that cart was updated
+    dispatchCartUpdateEvent() {
+        try {
+            console.log('PlaceOrderCart: Dispatching cartupdate event with', this.items.length, 'items');
+            this.dispatchEvent(new CustomEvent('cartupdate', {
+                detail: {
+                    cartItems: this.items,
+                    totalItems: this.totalItems
+                },
+                bubbles: true,
+                composed: true
+            }));
+        } catch (error) {
+            console.error('PlaceOrderCart: Error in dispatchCartUpdateEvent:', error);
+        }
     }
 
     // 🔹 Navigate back to product selection

@@ -14,14 +14,10 @@ export default class PlaceOrderContainer extends LightningElement {
 
     connectedCallback() {
         console.log('Container: connectedCallback fired!');
-        console.log('Container: Adding event listener for addtocart');
-        // Add an event listener to catch the addtocart event from placeOrder
-        this.addEventListener('addtocart', (event) => {
-            console.log('Container: Event listener caught addtocart event!');
-            console.log('Container: Event detail:', event.detail);
-            this.handleAddToCart(event);
-        });
-        console.log('Container: Event listener attached');
+        console.log('Container: Component initialized, ready to handle events');
+        // Event handlers are bound in the HTML template via onaddtocart={handleAddToCart}, 
+        // onbacktoselection={handleBackToSelection}, and onorderplaced={handleOrderPlaced}
+        // so we don't need to add explicit event listeners here
     }
 
     // 🔹 Handle Add to Cart event from placeOrder component
@@ -67,8 +63,26 @@ export default class PlaceOrderContainer extends LightningElement {
         }
     }
 
+    // 🔹 Handle Cart Update event from placeOrderCart component (when items are removed/changed)
+    handleCartUpdate(event) {
+        try {
+            console.log('Container: handleCartUpdate fired!');
+            const { cartItems } = event.detail;
+            
+            console.log('Container: Received cartItems from child:', cartItems.length);
+            
+            // Update cart items from child component
+            this.cartItems = [...cartItems];
+            
+            console.log('Container: Updated cartItems:', this.cartItems.length);
+        } catch (error) {
+            console.error('Container: Error in handleCartUpdate:', error);
+        }
+    }
+
     // 🔹 Handle Back to Selection event from cart component
     handleBackToSelection() {
+        console.log('Container: handleBackToSelection fired!');
         this.activeView = 'selection';
     }
 
@@ -91,6 +105,7 @@ export default class PlaceOrderContainer extends LightningElement {
         return this.activeView === 'cart';
     }
 
+    // Getters for CSS display binding
     get showSelectionStyle() {
         return this.activeView === 'selection' ? 'display: block;' : 'display: none;';
     }

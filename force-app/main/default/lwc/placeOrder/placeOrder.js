@@ -54,13 +54,20 @@ export default class PlaceOrder extends LightningElement {
     // 🔹 Automatically calls Apex method to get products based on distributor selection
     @wire(getProductsByDistributor, { distributorId: '$selectedDistributor' })
     wiredProducts({ data }) {
+        console.log('PlaceOrder: wiredProducts called, data:', data ? 'received' : 'none');
         if (data) {
-            this.products = data.map(p => ({
-                ...p,
-                quantity: 0
-            }));
+            console.log('PlaceOrder: Raw Apex data:', JSON.stringify(data.slice(0, 2))); // First 2 items for debugging
+            this.products = data.map(p => {
+                console.log('PlaceOrder: Mapping product - ID:', p.productId, 'Name:', p.productName, 'Apex Qty:', p.quantity, 'Type:', typeof p.quantity);
+                return {
+                    ...p,
+                    quantity: 0
+                };
+            });
+            console.log('PlaceOrder: Products loaded and mapped:', this.products.length, 'items');
         } else {
             // Reset products when no distributor selected
+            console.log('PlaceOrder: No products data received');
             this.products = [];
         }
     }
@@ -115,16 +122,24 @@ export default class PlaceOrder extends LightningElement {
             return;
         }
 
+        console.log('PlaceOrder: All products before filter:', JSON.stringify(this.products.map(p => ({ productId: p.productId, productName: p.productName, quantity: p.quantity }))));
+
         const selectedItems = this.products
             .filter(p => p.quantity > 0)
-            .map(p => ({
-                productId: p.productId || '',
-                productName: p.productName || '',
-                imageUrl: p.imageUrl || '',
-                quantity: parseInt(p.quantity, 10) || 0
-            }));
+            .map(p => {
+                console.log('PlaceOrder: Processing product - ID:', p.productId, 'Name:', p.productName, 'Qty (original):', p.quantity, 'Type:', typeof p.quantity);
+                const qty = parseInt(p.quantity, 10);
+                console.log('PlaceOrder: After parseInt - Qty:', qty, 'Type:', typeof qty);
+                return {
+                    productId: p.productId || '',
+                    productName: p.productName || '',
+                    imageUrl: p.imageUrl || '',
+                    quantity: qty || 0
+                };
+            });
 
-        console.log('PlaceOrder: Selected items:', selectedItems.length);
+        console.log('PlaceOrder: Selected items:', JSON.stringify(selectedItems));
+        console.log('PlaceOrder: Selected items count:', selectedItems.length);
 
         if (selectedItems.length === 0) {
             console.log('PlaceOrder: No items selected');
@@ -140,7 +155,7 @@ export default class PlaceOrder extends LightningElement {
             return;
         }
 
-        console.log('PlaceOrder: Dispatching addtocart event with franchiseId:', this.selectedFranchise, 'distributorId:', this.selectedDistributor, 'items:', selectedItems.length);
+        console.log('PlaceOrder: Final event detail:', JSON.stringify({ franchiseId: this.selectedFranchise, distributorId: this.selectedDistributor, items: selectedItems }));
 
         // Dispatch event to parent component with cart items
         this.dispatchEvent(new CustomEvent('addtocart', {
