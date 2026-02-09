@@ -2,3 +2,20 @@
     max-height: 150px;
     max-width: 150px;
 }
+
+/* Promo input styling: constrain width and center it for better appearance */
+.promo-input {
+    max-width: 220px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Promo box: limit overall width so the box doesn't span full column */
+.promo-box {
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 0.75rem; /* tweak inner spacing */
+    padding-right: 0.75rem;
+}
