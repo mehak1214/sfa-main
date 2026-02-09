@@ -102,15 +102,17 @@
 .total-line {
     margin-top: 18px;
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
+    padding: 0 8px; /* small horizontal padding to keep total inset */
 }
 
 .total-line .label {
-    margin-right: 16px;
-    font-size: 18px;
+    margin: 0;
+    font-size: 28px;
     color: #12284b;
     font-weight: 800;
+    letter-spacing: 0.6px;
 }
 
 .total-line .value {

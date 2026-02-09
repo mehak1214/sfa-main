@@ -79,10 +79,14 @@
                     </template>
 
                 </div>
-                <div class="total-line">
-                    <div class="label">Total</div>
-                    <div class="value">{computedTotalPriceDisplay}</div>
-                </div>
+            </div>
+        </template>
+
+        <!-- Total shown below the summary card -->
+        <template if:true={selectedItemsForSummary.length}>
+            <div class="total-line">
+                <div class="label">TOTAL</div>
+                <div class="value">{computedTotalPriceDisplay}</div>
             </div>
         </template>
 
