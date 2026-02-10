@@ -429,11 +429,12 @@ public with sharing class PlaceOrderController {
                     ibfsa__Order__c    = order.Id,
                     ibfsa__Product__c  = product.productId,
                     ibfsa__Quantity__c = product.quantity,
-                    ibfsa__Price__c    = productPrice
+                   ibfsa__Unit_Price__c    = productPrice,
+                   ibfsa__Total_Price__c   = productPrice * product.quantity
                 );
 
             lineItems.add(oli);
-            System.debug(' Line item created for product: ' + product.productId + ' with qty: ' + product.quantity + ' and price: ' + oli.ibfsa__Price__c);
+            System.debug(' Line item created for product: ' + product.productId + ' with qty: ' + product.quantity );
         }
 
         System.debug(' Total line items prepared for insertion: ' + lineItems.size());
