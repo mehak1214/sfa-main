@@ -52,6 +52,8 @@
                             </lightning-button-icon>
                         </div>
 
+                        <!-- Schemes are shown only in the summary; removed from product grid -->
+
                     </div>
                 </div>
             </template>
@@ -62,19 +64,58 @@
             <div class="slds-p-around_medium summary-box">
                 <h3 class="slds-text-heading_small">Order Summary</h3>
                 <div class="slds-m-top_small">
-                    <div class="summary-header">
-                        <div class="product-col">Product</div>
-                        <div class="qty-col">Qty</div>
-                        <div class="unit-col">Unit Price</div>
-                        <div class="line-col">Line Total</div>
-                    </div>
 
                     <template for:each={selectedItemsForSummary} for:item="item">
-                        <div key={item.productId} class="summary-row">
-                            <div class="product-name">{item.productName}</div>
-                            <div class="qty">{item.quantity}</div>
-                            <div class="unit-price">{item.unitPriceDisplay}</div>
-                            <div class="line-total">{item.lineTotalDisplay}</div>
+                        <div key={item.productId} class="summary-item-block">
+                            <div class="summary-row">
+                                <div class="summary-col">
+                                    <div class="col-label">Product</div>
+                                    <div class="col-value">{item.productName}</div>
+                                </div>
+                                <div class="summary-col">
+                                    <div class="col-label">Scheme</div>
+                                    <div class="col-value">
+                                        <template if:true={item.schemes}>
+                                            <template if:true={item.schemes.length}>
+                                                <lightning-combobox
+                                                    data-id={item.productId}
+                                                    name="summaryScheme"
+                                                    value={item.selectedSchemeId}
+                                                    options={item.schemes}
+                                                    placeholder="Select scheme"
+                                                    onchange={handleSummarySchemeChange}>
+                                                </lightning-combobox>
+                                            </template>
+                                            <template if:false={item.schemes.length}>
+                                                <span>No schemes</span>
+                                            </template>
+                                        </template>
+                                        <template if:false={item.schemes}>
+                                            <span>No schemes</span>
+                                        </template>
+                                    </div>
+                                </div>
+                                <div class="summary-col">
+                                    <div class="col-label">Qty</div>
+                                    <div class="col-value">{item.quantity}</div>
+                                </div>
+                                <div class="summary-col">
+                                    <div class="col-label">Unit Price</div>
+                                    <div class="col-value">{item.unitPriceDisplay}</div>
+                                </div>
+                                <div class="summary-col">
+                                    <div class="col-label">Subtotal</div>
+                                    <div class="col-value">{item.lineTotalDisplay}</div>
+                                </div>
+                                <div class="summary-col">
+                                    <div class="col-label">Discount</div>
+                                    <div class="col-value">{item.discountAmountDisplay}</div>
+                                </div>
+                                <div class="summary-col">
+                                    <div class="col-label">Total After Discount</div>
+                                    <div class="col-value">{item.discountedTotalDisplay}</div>
+                                </div>
+                            </div>
                         </div>
                     </template>
 
@@ -83,10 +124,22 @@
         </template>
 
         <!-- Total shown below the summary card -->
+        <!-- Invoice-style totals (shown above total) -->
         <template if:true={selectedItemsForSummary.length}>
-            <div class="total-line">
-                <div class="label">TOTAL</div>
-                <div class="value">{computedTotalPriceDisplay}</div>
+            <div class="invoice-totals slds-p-horizontal_medium slds-m-top_small">
+                <div class="slds-grid slds-grid_align-end">
+                    <div class="slds-col slds-size_1-of-3"></div>
+                    <div class="slds-col slds-size_2-of-3">
+                        <div class="slds-grid slds-grid_vertical-align-center slds-wrap">
+                            <div class="slds-col slds-size_1-of-2">Subtotal:</div>
+                            <div class="slds-col slds-size_1-of-2">{selectedItemsSubtotalDisplay}</div>
+                            <div class="slds-col slds-size_1-of-2">Total Discount:</div>
+                            <div class="slds-col slds-size_1-of-2">{selectedItemsTotalDiscountDisplay}</div>
+                            <div class="slds-col slds-size_1-of-2 slds-text-bold">Grand Total:</div>
+                            <div class="slds-col slds-size_1-of-2 slds-text-bold">{computedTotalPriceDisplay}</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </template>
 

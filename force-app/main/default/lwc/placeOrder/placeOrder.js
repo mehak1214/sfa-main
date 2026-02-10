@@ -1,10 +1,9 @@
 // Import required base classes and decorators from LWC
 import { LightningElement, track, wire } from 'lwc';
 
-// Import Apex methods (backend calls)
+/* Apex methods (backend calls) */
 import getFranchiseAccounts from '@salesforce/apex/PlaceOrderController.getFranchiseAccounts';
-import getDealerDistributorAccounts from '@salesforce/apex/PlaceOrderController.getDealerDistributorAccounts';
-import getProducts from '@salesforce/apex/PlaceOrderController.getProducts';
+import getDistributorAccounts from '@salesforce/apex/PlaceOrderController.getDistributorAccounts';
 import getProductsByDistributor from '@salesforce/apex/PlaceOrderController.getProductsByDistributor';
 import placeOrder from '@salesforce/apex/PlaceOrderController.placeOrder';
 
@@ -19,82 +18,56 @@ export default class PlaceOrder extends LightningElement {
 
     // Franchise options for dropdown
     @track franchiseOptions = [];
-
     // Distributor options for dropdown
     @track distributorOptions = [];
 
     // Stores the selected franchise Id
     selectedFranchise;
-
     // Stores the selected distributor Id
     selectedDistributor;
 
     // 🔹 Automatically calls Apex method to get franchise accounts
     @wire(getFranchiseAccounts)
-    wiredAccounts({ data }) {
+    wiredFranchises({ data, error }) {
         if (data) {
             this.franchiseOptions = data.map(acc => ({
                 label: acc.Name,
                 value: acc.Id
             }));
+        } else if (error) {
+            this.showToast('Error', 'Unable to load Franchise accounts', 'error');
         }
     }
 
-    // 🔹 Automatically calls Apex method to get dealer/distributor accounts
-    @wire(getDealerDistributorAccounts)
-    wiredDistributors({ data }) {
+    // 🔹 Automatically calls Apex method to get distributor accounts
+    @wire(getDistributorAccounts)
+    wiredDistributors({ data, error }) {
         if (data) {
             this.distributorOptions = data.map(acc => ({
                 label: acc.Name,
                 value: acc.Id
             }));
+        } else if (error) {
+            this.showToast('Error', 'Unable to load Distributor accounts', 'error');
         }
     }
 
-    // 🔹 Automatically calls Apex method to get products based on distributor selection
-    @wire(getProductsByDistributor, { distributorId: '$selectedDistributor' })
-    wiredProducts({ data }) {
-        if (data) {
-            this.products = data.map(p => ({
-                ...p,
-                quantity: 0,
-                unitPrice: p.unitPrice == null ? 0 : p.unitPrice
-            }));
-        } else {
-            // Reset products when no distributor selected
-            this.products = [];
+        // 🔹 Automatically calls Apex method to get products for selected distributor
+        @wire(getProductsByDistributor, { distributorId: '$selectedDistributor' })
+        wiredProducts({ data, error }) {
+            if (data) {
+                this.products = data.map(p => ({
+                    ...p,
+                    quantity: 0,
+                    unitPrice: p.unitPrice || 0,
+                    schemes: p.schemes || [],
+                    selectedSchemeId: null
+                }));
+            } else if (error) {
+                this.products = [];
+                this.showToast('Error', 'Unable to load products for distributor', 'error');
+            }
         }
-    }
-
-    // 🔹 Returns selected products (quantity > 0) with computed line totals
-    get selectedItemsForSummary() {
-        return this.products
-            .filter(p => p.quantity > 0)
-            .map(p => {
-                const unit = Number(p.unitPrice || 0);
-                const qty = Number(p.quantity || 0);
-                const line = unit * qty;
-                return {
-                    productId: p.productId,
-                    productName: p.productName,
-                    quantity: qty,
-                    unitPrice: unit,
-                    lineTotal: line,
-                    unitPriceDisplay: unit.toFixed(2),
-                    lineTotalDisplay: line.toFixed(2)
-                };
-            });
-    }
-
-    // 🔹 Total price across selected products
-    get computedTotalPrice() {
-        return this.selectedItemsForSummary.reduce((sum, item) => sum + (item.lineTotal || 0), 0);
-    }
-
-    // Formatted total price for display
-    get computedTotalPriceDisplay() {
-        return Number(this.computedTotalPrice || 0).toFixed(2);
-    }
 
     // 🔹 Called when user selects a franchise from dropdown
     handleFranchiseChange(event) {
@@ -137,11 +110,6 @@ export default class PlaceOrder extends LightningElement {
             return;
         }
 
-        if (!this.selectedDistributor) {
-            this.showToast('Error', 'Please select a dealer/distributor', 'error');
-            return;
-        }
-
         const selectedItems = this.products
             .filter(p => p.quantity > 0)
             .map(p => ({
@@ -149,7 +117,8 @@ export default class PlaceOrder extends LightningElement {
                 productName: p.productName || '',
                 imageUrl: p.imageUrl || '',
                 quantity: parseInt(p.quantity, 10) || 0,
-                unitPrice: p.unitPrice || 0
+                unitPrice: p.unitPrice || 0,
+                selectedSchemeId: p.selectedSchemeId ? String(p.selectedSchemeId) : null
             }));
 
         if (selectedItems.length === 0) {
@@ -200,5 +169,71 @@ export default class PlaceOrder extends LightningElement {
                 duration: variant === 'success' ? 5000 : 10000
             })
         );
+    }
+
+    // ------------------ Summary Getters ------------------
+    get selectedItemsForSummary() {
+        return this.products
+            .filter(p => p.quantity > 0)
+            .map(p => {
+                const qty = parseInt(p.quantity, 10) || 0;
+                const unit = parseFloat(p.unitPrice) || 0;
+                // find selected scheme to compute discount
+                let discount = 0;
+                let schemes = p.schemes || [];
+                const sel = schemes.find(s => s.value === p.selectedSchemeId);
+                if (sel && sel.discount) {
+                    discount = parseFloat(sel.discount) || 0;
+                }
+                const subtotal = qty * unit;
+                const discountAmount = subtotal * (discount / 100);
+                const discountedTotal = subtotal - discountAmount;
+                return {
+                    productId: p.productId,
+                    productName: p.productName,
+                    quantity: qty,
+                    unitPrice: unit,
+                    unitPriceDisplay: unit.toFixed(2),
+                    lineTotal: subtotal,
+                    lineTotalDisplay: subtotal.toFixed(2),
+                    discount: discount,
+                    discountAmount: discountAmount,
+                    discountAmountDisplay: discountAmount.toFixed(2),
+                    discountedTotal: discountedTotal,
+                    discountedTotalDisplay: discountedTotal.toFixed(2),
+                    schemes: schemes,
+                    selectedSchemeId: p.selectedSchemeId
+                };
+            });
+    }
+
+    get selectedItemsSubtotalDisplay() {
+        const subtotal = this.selectedItemsForSummary.reduce((s, i) => s + (i.lineTotal || 0), 0);
+        return subtotal.toFixed(2);
+    }
+
+    get selectedItemsTotalDiscountDisplay() {
+        const totalDiscount = this.selectedItemsForSummary.reduce((s, i) => s + (i.discountAmount || 0), 0);
+        return totalDiscount.toFixed(2);
+    }
+
+    get computedTotalPriceDisplay() {
+        const total = this.selectedItemsForSummary.reduce((s, i) => s + (i.discountedTotal || 0), 0);
+        return total.toFixed(2);
+    }
+
+    // 🔹 Called when user changes scheme in the summary combobox
+    handleSummarySchemeChange(event) {
+        const productId = event.target.dataset.id;
+        const selectedSchemeId = event.detail.value;
+        this.products = this.products.map(p => {
+            if (p.productId === productId) {
+                return {
+                    ...p,
+                    selectedSchemeId
+                };
+            }
+            return p;
+        });
     }
 }
