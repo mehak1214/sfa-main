@@ -1,6 +1,6 @@
 import { LightningElement, api, wire } from 'lwc';
+import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import { CurrentPageReference } from 'lightning/navigation';
 import checkInVisit from '@salesforce/apex/VisitController.checkInVisit';
 import checkOutVisit from '@salesforce/apex/VisitController.checkOutVisit';
 import getVisitDetail from '@salesforce/apex/VisitController.getVisitDetail';
@@ -9,8 +9,9 @@ import uploadVisitPhoto from '@salesforce/apex/VisitController.uploadVisitPhoto'
 import deleteVisitPhoto from '@salesforce/apex/VisitController.deleteVisitPhoto';
 import getVisitPhoto from '@salesforce/apex/VisitController.getVisitPhoto';
 import getOutletPhoto from '@salesforce/apex/VisitController.getOutletPhoto';
+import saveMeetingNotes from '@salesforce/apex/VisitController.saveMeetingNotes';
 
-export default class VisitDetail extends LightningElement {
+export default class VisitDetail extends NavigationMixin(LightningElement) {
     _visit;
     _visitId;
     recordId;
@@ -23,7 +24,10 @@ export default class VisitDetail extends LightningElement {
     showOrderPanel = false;
     // UI state for photo modal
     isPhotoModalOpen = false;
+    isSchemesModalOpen = false;
     recentUploadNames = [];
+    meetingNotes = '';
+    meetingNotesSaving = false;
 
     @api
     get visit() {
@@ -51,15 +55,67 @@ export default class VisitDetail extends LightningElement {
         this.loadAttendance();
     }
 
+    get currentVisitId() {
+        // Single source for actions that can use either explicit visitId or loaded record.
+        return this.recordId || this.visit?.Id;
+    }
+
+    get outletAccount() {
+        return this.visit?.ibfsa__Outlet1__r;
+    }
+
+    get outletCoordinates() {
+        // Supports namespaced and unpackaged location field variants.
+        const account = this.outletAccount;
+        const lat = account?.ibfsa__Outlet_Location__Latitude__s ?? account?.Outlet_Location__Latitude__s;
+        const lon = account?.ibfsa__Outlet_Location__Longitude__s ?? account?.Outlet_Location__Longitude__s;
+        return { lat, lon };
+    }
+
     loadAttendance() {
         getTodayAttendance()
             .then(att => {
                 this.dayStarted = !!att;
-                this.dayEnded = !!att?.End_Time__c;
+                this.dayEnded = !!(att?.End_Time__c || att?.ibfsa__End_Time__c);
             })
             .catch(() => {
                 this.dayStarted = false;
                 this.dayEnded = false;
+            });
+    }
+
+    refreshVisitData({ showErrorToast = true } = {}) {
+        const visitId = this.currentVisitId;
+        if (!visitId) {
+            this.loadAttendance();
+            return Promise.resolve();
+        }
+
+        return Promise.all([
+            getVisitDetail({ visitId }),
+            getTodayAttendance()
+        ])
+            .then(([visitData, att]) => {
+                if (visitData) {
+                    // Refresh local UI model immediately after check-in/check-out mutations.
+                    this.visit = visitData;
+                    this.meetingNotes = visitData?.Meeting_Notes__c || '';
+                    this.setIsTodayFromVisit(visitData);
+                    this.checkForVisitPhoto();
+                    this.loadOutletPhoto();
+                }
+                this.dayStarted = !!att;
+                this.dayEnded = !!(att?.End_Time__c || att?.ibfsa__End_Time__c);
+                this.dispatchEvent(new CustomEvent('refresh'));
+            })
+            .catch(err => {
+                if (showErrorToast) {
+                    this.showToast(
+                        'Unable to refresh visit',
+                        err?.body?.message || 'Please try again.',
+                        'error'
+                    );
+                }
             });
     }
 
@@ -76,6 +132,7 @@ export default class VisitDetail extends LightningElement {
     wiredVisit({ data, error }) {
         if (data) {
             this.visit = data;
+            this.meetingNotes = data?.Meeting_Notes__c || '';
             this.setIsTodayFromVisit(data);
             // Check if there's a photo for this visit
             this.checkForVisitPhoto();
@@ -146,12 +203,28 @@ export default class VisitDetail extends LightningElement {
     }
 
     get outletName() {
-        const account = this.visit?.ibfsa__Outlet1__r;
+        const account = this.outletAccount;
         return account?.Name || 'Unknown Outlet';
     }
 
+    get outletRecordId() {
+        return this.visit?.ibfsa__Outlet1__c || null;
+    }
+
+    get outletObjectApiName() {
+        return this.outletAccount?.attributes?.type;
+    }
+
+    get outletLinkDisabled() {
+        return !this.outletRecordId;
+    }
+
+    get visitFranchiseId() {
+        return this.visit?.ibfsa__Outlet1__c || null;
+    }
+
     get outletAddress() {
-        const account = this.visit?.ibfsa__Outlet1__r;
+        const account = this.outletAccount;
         if (!account || !account.ShippingAddress) {
             return 'No Address Provided';
         }
@@ -254,10 +327,16 @@ export default class VisitDetail extends LightningElement {
             status === 'in progress';
     }
 
+    get showDayCompletedMessage() {
+        return this.dayEnded;
+    }
+
+    get showStartDayMessage() {
+        return !this.dayStarted;
+    }
+
     get mapDisabled() {
-        const account = this.visit?.ibfsa__Outlet1__r;
-        const lat = account?.ibfsa__Outlet_Location__Latitude__s ?? account?.Outlet_Location__Latitude__s;
-        const lon = account?.ibfsa__Outlet_Location__Longitude__s ?? account?.Outlet_Location__Longitude__s;
+        const { lat, lon } = this.outletCoordinates;
         return lat === null || lat === undefined || lon === null || lon === undefined;
     }
 
@@ -266,22 +345,54 @@ export default class VisitDetail extends LightningElement {
     }
 
     handleClose() {
+        this.dispatchEvent(new CustomEvent('close', { bubbles: true, composed: true }));
+
         try {
             if (window.history.length > 1) {
+                const currentUrl = window.location.href;
                 window.history.back();
+                window.setTimeout(() => {
+                    if (window.location.href === currentUrl) {
+                        this.navigateToHomeFallback();
+                    }
+                }, 300);
                 return;
             }
-        } catch (e) {
-            // no-op fallthrough to close event
+        } catch (error) {
+            this.navigateToHomeFallback();
+            return;
         }
-        this.dispatchEvent(new CustomEvent('close'));
+        this.navigateToHomeFallback();
+    }
+
+    navigateToHomeFallback() {
+        try {
+            this[NavigationMixin.Navigate]({
+                type: 'standard__navItemPage',
+                attributes: {
+                    apiName: 'Sales_Rep'
+                }
+            });
+            return;
+        } catch (error) {
+            // continue with fallback
+        }
+
+        try {
+            this[NavigationMixin.Navigate]({
+                type: 'standard__webPage',
+                attributes: {
+                    url: '/one/one.app'
+                }
+            });
+        } catch (error) {
+            // no-op
+        }
     }
 
     navigateToMap(event) {
         event?.stopPropagation();
-        const account = this.visit?.ibfsa__Outlet1__r;
-        const lat = account?.ibfsa__Outlet_Location__Latitude__s ?? account?.Outlet_Location__Latitude__s;
-        const lon = account?.ibfsa__Outlet_Location__Longitude__s ?? account?.Outlet_Location__Longitude__s;
+        const { lat, lon } = this.outletCoordinates;
 
         if (lat === null || lat === undefined || lon === null || lon === undefined) {
             this.showToast('Location unavailable', 'Outlet location not available.', 'error');
@@ -290,6 +401,27 @@ export default class VisitDetail extends LightningElement {
 
         const mapUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
         window.open(mapUrl, '_blank');
+    }
+
+    handleOpenOutlet360(event) {
+        event?.preventDefault();
+        event?.stopPropagation();
+
+        if (!this.outletRecordId) {
+            this.showToast('Outlet unavailable', 'Outlet record is not available for this visit.', 'warning');
+            return;
+        }
+
+        this[NavigationMixin.Navigate]({
+            type: 'standard__component',
+            attributes: {
+                componentName: 'c__outlet360Page'
+            },
+            state: {
+                c__recordId: String(this.outletRecordId),
+                c__objectApiName: this.outletObjectApiName ? String(this.outletObjectApiName) : 'Account'
+            }
+        });
     }
 
     handleCheckIn(event) {
@@ -306,6 +438,14 @@ export default class VisitDetail extends LightningElement {
         this.showOrderPanel = !this.showOrderPanel;
     }
 
+    handleOpenSchemesModal() {
+        this.isSchemesModalOpen = true;
+    }
+
+    handleCloseSchemesModal() {
+        this.isSchemesModalOpen = false;
+    }
+
     get orderToggleLabel() {
         return this.showOrderPanel ? 'Hide Order' : 'Create Order';
     }
@@ -317,13 +457,45 @@ export default class VisitDetail extends LightningElement {
         this.showToast('Upload complete', `${count} file(s) attached to this visit.`, 'success');
     }
 
+    handleMeetingNotesChange(event) {
+        this.meetingNotes = event?.target?.value || '';
+    }
+
+    handleSaveMeetingNotes() {
+        const visitId = this.currentVisitId;
+        if (!visitId) {
+            this.showToast('Visit not found', 'Missing visit id.', 'error');
+            return;
+        }
+
+        this.meetingNotesSaving = true;
+        saveMeetingNotes({
+            visitId,
+            notes: this.meetingNotes
+        })
+            .then(() => {
+                this.showToast('Saved', 'Meeting notes saved.', 'success');
+                this.refreshVisitData({ showErrorToast: false });
+            })
+            .catch((error) => {
+                this.showToast(
+                    'Save failed',
+                    error?.body?.message || 'Unable to save meeting notes.',
+                    'error'
+                );
+            })
+            .finally(() => {
+                this.meetingNotesSaving = false;
+            });
+    }
+
     performGeoAction(apexMethod) {
         if (!navigator?.geolocation) {
             this.showToast('Location unavailable', 'Geolocation is not supported.', 'error');
             return;
         }
 
-        const visitId = this.recordId || this.visit?.Id;
+        const visitId = this.currentVisitId;
         if (!visitId) {
             this.showToast('Visit not found', 'Missing visit id.', 'error');
             return;
@@ -338,8 +510,8 @@ export default class VisitDetail extends LightningElement {
                     lat: pos.coords.latitude.toString(),
                     lon: pos.coords.longitude.toString()
                 })
-                .then( () => {
-                    this.dispatchEvent(new CustomEvent('refresh'));
+                .then(() => this.refreshVisitData({ showErrorToast: false }))
+                .then(() => {
                     this.showToast('Success', 'Visit updated successfully.', 'success');
                 })
                 .catch(err => {
@@ -423,7 +595,7 @@ export default class VisitDetail extends LightningElement {
                 const file = input.files && input.files[0];
                 if (!file) return;
  
-                const visitId = this.recordId || this.visit?.Id;
+                const visitId = this.currentVisitId;
                 if (!visitId) {
                     this.showToast('Visit not found', 'Missing visit id.', 'error');
                     return;

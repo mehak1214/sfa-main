@@ -5,18 +5,20 @@
                 <div class="hero-avatar">{userInitials}</div>
                 <div class="hero-copy">
                     <span class="hero-small">FIELD DAY</span>
-                    <h1>Welcome, {firstName}</h1>
-                    <p>{journeyStateLabel}</p>
+                    <h1>Hello, {userName}</h1>
+                    <p>Let's crush your goals today.</p>
                 </div>
-                <template if:true={showStartDayButton}>
-                    <button class="start-btn" onclick={handleStartDay}>Start Day</button>
-                </template>
-                <template if:true={showEndDayButton}>
-                    <button class="end-btn" onclick={handleEndDay}>End Day</button>
-                </template>
-                <template if:true={showDayEndedButton}>
-                    <button class="done-btn" disabled>Day Ended</button>
-                </template>
+                <div class="hero-action">
+                    <template if:true={showStartDayButton}>
+                        <button class="start-btn" onclick={handleStartDay}>Start Day</button>
+                    </template>
+                    <template if:true={showEndDayButton}>
+                        <button class="end-btn" onclick={handleEndDay}>End Day</button>
+                    </template>
+                    <template if:true={showDayEndedButton}>
+                        <span class="day-ended-tag">Day Completed</span>
+                    </template>
+                </div>
             </section>
 
             <section class="dash-actions">
@@ -41,56 +43,74 @@
                 </template>
             </section>
 
-            <section class="performance-head">
-                <h2>My Performance</h2>
-                <span class="month-chip">
-                    <lightning-icon icon-name="utility:event" size="xx-small" alternative-text="Month"></lightning-icon>
-                    This Month
-                </span>
-            </section>
-
-            <section class="insight-card">
-                <h3>Well Done!</h3>
-                <p>Your productivity is {performanceLiftPercent}% higher than last month.</p>
-            </section>
-
-            <section class="incentive-card">
-                <h3>Incentives</h3>
-                <div class="amount-row">
-                    <strong>{incentiveCurrentLabel}</strong>
-                    <span>/{incentiveTargetLabel}</span>
-                    <span class="inc-badge">{incentivePercent}%</span>
+            <section class="focus-sheet">
+                <div class="sheet-head">
+                    <h2>Sales & Incentive</h2>
+                    <span class="month-pill">{currentMonthLabel}</span>
                 </div>
 
-                <div class="incentive-track">
-                    <div class="track-base"></div>
-                    <div class="track-dot start"></div>
-                    <div class="track-dot mid"></div>
-                    <div class="track-dot end"></div>
-                </div>
-
-                <div class="track-labels">
-                    <span>{incentiveCurrentLabel}</span>
-                    <span>{incentiveMidLabel}</span>
-                    <span>{incentiveTargetLabel}</span>
-                </div>
-            </section>
-
-            <section class="new-products">
-                <div class="new-products-head">
-                    <h3>New Products</h3>
-                    <span>Fresh Picks</span>
-                </div>
-
-                <template for:each={newProducts} for:item="product">
-                    <div key={product.id} class="product-item">
-                        <div class="product-copy">
-                            <strong>{product.name}</strong>
-                            <span>{product.category}</span>
-                        </div>
-                        <button class="product-btn" type="button">Focus</button>
+                <div class="sheet-amounts">
+                    <div class="sheet-row">
+                        <label>Actual Sales</label>
+                        <strong>{actualSalesLabel}</strong>
                     </div>
-                </template>
+                    <div class="sheet-row">
+                        <label>Target</label>
+                        <strong>{targetAmountLabel}</strong>
+                    </div>
+                </div>
+
+                <div class="sheet-progress">
+                    <div class="sheet-progress-fill" style={achievementProgressStyle}></div>
+                </div>
+                <div class="sheet-progress-meta">
+                    <span>{achievementPercentLabel} achieved</span>
+                    <span>Visits {visitProgressLabel}</span>
+                </div>
+
+                <div class="stats-strip">
+                    <article>
+                        <span>Avg Order Value</span>
+                        <strong>{avgOrderValueLabel}</strong>
+                    </article>
+                    <article>
+                        <span>Pending Collection</span>
+                        <strong>{pendingCollectionLabel}</strong>
+                    </article>
+                    <article>
+                        <span>Schemes</span>
+                        <strong>{activeSchemeCountLabel}</strong>
+                    </article>
+                </div>
+
+                <div class="sheet-divider"></div>
+
+                <div class="sheet-summary">
+                    <div class="sheet-row">
+                        <label>Monthly Performance</label>
+                        <strong>{monthlyPerformanceLabel}</strong>
+                    </div>
+                    <div class="sheet-row">
+                        <label>Incentive</label>
+                        <strong>{incentiveAmountLabel}</strong>
+                    </div>
+                </div>
+
+                <div class="banner-line">
+                    <span class="banner-tag">NEW</span>
+                    <div>
+                        <h3>{featuredProductName}</h3>
+                        <p>{featuredProductCategory} - demo product banner</p>
+                    </div>
+                </div>
+
+                <div class="banner-line scheme" onclick={handleOpenSchemesModal}>
+                    <span class="banner-tag">SCHEME</span>
+                    <div>
+                        <h3>{featuredSchemeTitle}</h3>
+                        <p>{featuredSchemeDetail}</p>
+                    </div>
+                </div>
             </section>
         </template>
 
@@ -134,46 +154,18 @@
             </section>
 
             <template if:true={isOperationsScreen}>
-                <section class="visit-tabs">
-                    <button class={upcomingTabClass}
-                            data-tab="upcoming"
-                            onclick={handleVisitTabChange}>
-                        Upcoming
-                    </button>
-                    <button class={ongoingTabClass}
-                            data-tab="ongoing"
-                            onclick={handleVisitTabChange}>
-                        Ongoing
-                    </button>
-                    <button class={completedTabClass}
-                            data-tab="completed"
-                            onclick={handleVisitTabChange}>
-                        Completed
-                    </button>
-                </section>
-
-                <section class="visit-list">
-                    <template if:true={filteredVisits.length}>
-                        <template for:each={filteredVisits} for:item="visit">
-                            <c-visit-tile
-                                key={visit.Id}
-                                visit={visit}
-                                day-started={dayStarted}
-                                day-ended={dayEnded}
-                                is-today={isToday}
-                                onopenvisit={handleOpenVisit}
-                                onrefresh={handleRefresh}>
-                            </c-visit-tile>
-                        </template>
-                    </template>
-
-                    <template if:false={filteredVisits.length}>
-                        <div class="empty">
-                            <p>No visits found</p>
-                            <span>Select another tab or date to view visits.</span>
-                        </div>
-                    </template>
-                </section>
+                <c-r-field-operations-panel
+                    visits={visits}
+                    active-tab={activeVisitTab}
+                    day-started={dayStarted}
+                    day-ended={dayEnded}
+                    is-today={isToday}
+                    has-beat-selected={hasBeatSelected}
+                    stay-on-field-no-beat={stayOnFieldNoBeat}
+                    onvisittabchange={handleVisitTabChange}
+                    onopenvisit={handleOpenVisit}
+                    onrefresh={handleRefresh}>
+                </c-r-field-operations-panel>
             </template>
 
             <template if:true={isTravelScreen}>
@@ -200,5 +192,22 @@
                 </section>
             </template>
         </template>
+
+        <template if:true={showSchemesModal}>
+                    <section role="dialog" tabindex="-1" aria-modal="true" aria-label="View Schemes" class="slds-modal slds-fade-in-open">
+                        <div class="slds-modal__container">
+                            <header class="slds-modal__header">
+                                <h2 class="slds-text-heading_medium">Available Schemes</h2>
+                            </header>
+                            <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                                <c-view-schemes></c-view-schemes>
+                            </div>
+                            <footer class="slds-modal__footer">
+                                <lightning-button variant="neutral" label="Close" onclick={handleCloseSchemesModal}></lightning-button>
+                            </footer>
+                        </div>
+                    </section>
+                    <div class="slds-backdrop slds-backdrop_open" onclick={handleCloseSchemesModal}></div>
+        </template> 
     </div>
 </template>

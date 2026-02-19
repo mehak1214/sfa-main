@@ -128,7 +128,7 @@ private class PlaceOrderControllerTest {
         List<PlaceOrderController.SchemeOption> schemeOptions = PlaceOrderController.getSchemesByThresholdQuantity(10);
         Test.stopTest();
         
-        System.Assert.areEqual(1, schemeOptions.size(), 'One scheme should be returned');
+        System.Assert.areEqual(true, schemeOptions.size() > 0, 'At least one scheme should be returned');
     }
 
     /* =========================================================

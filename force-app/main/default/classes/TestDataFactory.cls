@@ -136,7 +136,9 @@ public with sharing class TestDataFactory {
         ibfsa__Scheme__c s = new ibfsa__Scheme__c();
         s.ibfsa__Threshold_Quantity__c  = thresholdQty;
         s.ibfsa__Discount__c            = discount;
-        s.ibfsa__Active__c              = true;
+        s.ibfsa__Start_Date__c          = Date.today();
+        s.ibfsa__End_Date__c            = Date.today().addDays(10);
+        s.ibfsa__Scheme_Name__c         = TestDataFactory.generateRandomString(10);
         insert s;
         return s;
     }
@@ -165,4 +167,16 @@ public with sharing class TestDataFactory {
         return item;
 
     }
+
+    public static String generateRandomString(Integer length) {
+        final String chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz';
+        String randStr = '';
+        
+        while (randStr.length() < length) {
+            Integer idx = Math.mod(Math.abs(Crypto.getRandomInteger()), chars.length());
+            randStr += chars.substring(idx, idx + 1);
+        }
+        return randStr;
+    }
+
 }

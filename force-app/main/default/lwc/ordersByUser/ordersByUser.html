@@ -1,0 +1,53 @@
+<template>
+    <lightning-card title="My Orders" icon-name="standard:orders">
+        <div class="slds-p-around_medium">
+            <!-- Loading Spinner -->
+            <template if:true={isLoading}>
+                <div class="slds-align_absolute-center slds-m-vertical_large">
+                    <lightning-spinner alternative-text="Loading" size="large"></lightning-spinner>
+                </div>
+            </template>
+
+            <!-- No Orders Message -->
+            <template if:true={noOrdersToDisplay}>
+                <div class="slds-text-align_center slds-p-vertical_large">
+                    <p class="slds-text-color_weak">No orders found for the selected filters.</p>
+                </div>
+            </template>
+
+            <!-- Orders Card View -->
+            <template if:true={hasOrders}>
+                <div class="orders-container">
+                    <template for:each={orders} for:item="order">
+                        <div key={order.orderId} class="order-card slds-box slds-m-bottom_medium">
+                            <!-- Order Header with Order Number (Clickable) -->
+                            <div class="order-header slds-p-medium" onclick={handleCardClick} data-order-id={order.orderId}>
+                                <div class="header-content">
+                                    <div class="order-number-container">
+                                        <h2 class="order-number">Order #{order.orderNumber}</h2>
+                                    </div>
+                                    <div class="order-amount-wrapper">
+                                        <span class="order-amount">Amount: {order.formattedAmount}</span>
+                                        <span class="order-date">Order Date: {order.formattedOrderDate}</span>
+                                    </div>
+                                </div>
+                                <div class="status-wrapper">
+                                    <span class="status-badge" data-status={order.status}>
+                                        {order.status}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- Error Message -->
+            <template if:true={errorMessage}>
+                <div class="slds-box slds-theme_alert-texture slds-theme_error slds-m-vertical_large">
+                    <p class="slds-m-0">{errorMessage}</p>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

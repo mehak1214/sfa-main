@@ -29,13 +29,13 @@ lightning-card {
     box-shadow: 0 8px 16px rgba(18, 45, 82, 0.1);
 }
 
-.summary-box {
+/* .summary-box {
     background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
     border-radius: 12px;
     padding: 16px;
     box-shadow: 0 8px 20px rgba(20, 45, 80, 0.08);
     border: 1px solid #dce8f8;
-}
+} */
 
 .summary-box h3 {
     font-size: 17px;
@@ -56,13 +56,13 @@ lightning-card {
     padding-bottom: 0;
 }
 
-.summary-row {
+/* .summary-row {
     display: grid;
     grid-template-columns: 2fr 1.6fr 1fr 1fr 1fr 1.2fr;
     gap: 12px;
     align-items: flex-start;
     padding: 8px 0;
-}
+} */
 
 .summary-col {
     display: flex;
@@ -96,4 +96,32 @@ lightning-card {
     .summary-row {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+}
+
+.product-image {
+width: 100%;
+height: 150px;
+object-fit: contain;
+background: #f8fbff;
+border-radius: 8px;
+}
+
+.summary-box {
+background: #f8fbff;
+border-radius: 10px;
+padding: 12px;
+border: 1px solid #dde8f8;
+}
+
+.summary-row {
+display: flex;
+justify-content: space-between;
+padding: 6px 0;
+border-bottom: 1px solid #e7effa;
+}
+
+.total-row {
+margin-top: 10px;
+font-weight: bold;
+text-align: right;
 }

@@ -11,6 +11,7 @@ import getDayTimeline from '@salesforce/apex/VisitController.getDayTimeline';
 import startDay from '@salesforce/apex/VisitController.startDay';
 import endDay from '@salesforce/apex/VisitController.endDay';
 import getTravelSummaryByDate from '@salesforce/apex/VisitController.getTravelSummaryByDate';
+import getDashboardSnapshot from '@salesforce/apex/VisitController.getDashboardSnapshot';
 
 const USER_FIELDS = ['User.Name'];
 const DATE_WINDOW_SIZE = 5;
@@ -50,12 +51,15 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
     timelineVisits = [];
     timelineLoading = false;
     travelSummary = {};
+    showSchemesModal = false;
     travelLoading = false;
     travelError = null;
+    dashboardSnapshot = {};
     activeScreen = 'operations';
     activeVisitTab = 'upcoming';
     dailyVisits = [];
     activeMainScreen = 'dashboard'; // dashboard | field
+    stayOnFieldNoBeat = false;
 
     
     manualExpenseType = 'Travel';
@@ -92,7 +96,34 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
         this.loadAttendance();
         this.loadBeats();
         this.loadTravelSummary();
+        this.loadDashboardSnapshot();
         this.fetchDayTimelineData();
+    }
+
+    refreshDayViews() {
+        // Full refresh used after start/end day actions.
+        this.loadAttendance();
+        this.loadTravelSummary();
+        this.loadDashboardSnapshot();
+        this.fetchDayTimelineData();
+        this.loadBeats().then(() => {
+            if (this.viewMode === 'BEAT' && this.selectedBeatId) {
+                this.loadVisits();
+            }
+        });
+    }
+
+    refreshDateScopedData() {
+        // Date-driven refresh used by date picker and Today jump.
+        this.loadAttendance();
+        this.loadBeats();
+        this.loadTravelSummary();
+        this.loadDashboardSnapshot();
+        this.fetchDayTimelineData();
+
+        if (this.timelineOpen) {
+            this.loadTimelinePopup();
+        }
     }
 
     /* =====================
@@ -102,7 +133,7 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
         getTodayAttendance()
             .then(att => {
                 this.dayStarted = !!att;
-                this.dayEnded = !!att?.End_Time__c;
+                this.dayEnded = !!(att?.End_Time__c || att?.ibfsa__End_Time__c);
             });
     }
 
@@ -147,14 +178,25 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
                     this.selectedBeatId = null;
                     this.selectedBeatName = null;
                     this.viewMode = null;
-                    this.activeMainScreen = 'dashboard';
+                    this.stayOnFieldNoBeat = this.activeMainScreen === 'field';
                     this.applyVisits([], false);
                 } else if (this.viewMode === 'BEAT') {
+                    this.stayOnFieldNoBeat = false;
                     this.loadVisits();
                 }
             })
             .catch(() => {
                 this.beats = [];
+            });
+    }
+
+    loadDashboardSnapshot() {
+        return getDashboardSnapshot({ visitDate: this.selectedDate })
+            .then(result => {
+                this.dashboardSnapshot = result || {};
+            })
+            .catch(() => {
+                this.dashboardSnapshot = {};
             });
     }
 
@@ -222,6 +264,14 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
         }
     }
 
+    handleOpenSchemesModal() {
+        this.showSchemesModal = true;
+    }
+
+    handleCloseSchemesModal() {
+        this.showSchemesModal = false;
+    }
+
     handleBeatToggle() {
         this.showBeatDropdown = !this.showBeatDropdown;
     }
@@ -234,6 +284,7 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
         this.viewMode = 'BEAT';
         this.activeMainScreen = 'field';
         this.activeScreen = 'operations';
+        this.stayOnFieldNoBeat = false;
         this.applyVisits([], false);
         this.loadVisits();
     }
@@ -241,6 +292,7 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
     handleBackToDashboard() {
         this.activeMainScreen = 'dashboard';
         this.showBeatDropdown = false;
+        this.stayOnFieldNoBeat = false;
     }
 
     handleGenerateInsights() {
@@ -255,19 +307,13 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
         this.selectedDate = e.currentTarget.dataset.date;
         const today = formatDateValue(new Date());
         this.isToday = this.selectedDate === today;
-
-        this.loadBeats();
-        this.loadTravelSummary();
-        this.fetchDayTimelineData();
-
-        if (this.timelineOpen) {
-            this.loadTimelinePopup();
-        }
+        this.refreshDateScopedData();
     }
 
     handleRefresh() {
         this.applyVisits([], false);
         this.loadTravelSummary();
+        this.loadDashboardSnapshot();
         this.fetchDayTimelineData();
         setTimeout(() => {
             if (this.viewMode === 'BEAT') this.loadVisits();
@@ -329,8 +375,7 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
                 })
                 .then(() => {
                     if (onSuccess) onSuccess();
-                    this.loadAttendance();
-                    this.loadTravelSummary();
+                    this.refreshDayViews();
                     this.showToast(title, message, 'success');
                 })
                 .catch(err => {
@@ -564,11 +609,19 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
     }
 
     get salesTargetAmount() {
+        const snapshotTarget = Number(this.dashboardSnapshot?.targetAmount);
+        if (!Number.isNaN(snapshotTarget) && snapshotTarget > 0) {
+            return snapshotTarget;
+        }
         const outlets = this.totalVisits || (this.beats.length * 4);
         return Math.max(outlets, 1) * 12000;
     }
 
     get salesAchievedAmount() {
+        const snapshotActual = Number(this.dashboardSnapshot?.actualSales);
+        if (!Number.isNaN(snapshotActual) && snapshotActual >= 0) {
+            return snapshotActual;
+        }
         return (this.completedCount * 12000) + (this.inProgressCount * 6000);
     }
 
@@ -577,6 +630,10 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
     }
 
     get salesAchievementPercent() {
+        const snapshotPercent = Number(this.dashboardSnapshot?.achievementPercent);
+        if (!Number.isNaN(snapshotPercent) && snapshotPercent >= 0) {
+            return Math.min(100, Math.round(snapshotPercent));
+        }
         return Math.min(100, Math.round((this.salesAchievedAmount / this.salesTargetAmount) * 100));
     }
 
@@ -709,6 +766,10 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
     }
 
     get incentiveCurrentLabel() {
+        const snapshotIncentive = Number(this.dashboardSnapshot?.incentiveAmount);
+        if (!Number.isNaN(snapshotIncentive) && snapshotIncentive >= 0) {
+            return this.formatINRCurrency(snapshotIncentive);
+        }
         return this.formatINRCurrency(this.salesAchievedAmount);
     }
 
@@ -722,6 +783,14 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
 
     get incentiveMidLabel() {
         return this.formatINRCurrency(Math.round(this.salesTargetAmount * 0.64));
+    }
+
+    get progressDonutStyle() {
+        return `--progress:${this.progressPercentage}`;
+    }
+
+    get firstProductCategory() {
+        return this.newProducts?.[0]?.category || 'Consumer Electronics';
     }
 
     get segmentWidthA() {
@@ -745,32 +814,6 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
         return `width:${width}%`;
     }
 
-    get upcomingTabClass() {
-        return `task-tab${this.activeVisitTab === 'upcoming' ? ' active' : ''}`;
-    }
-
-    get ongoingTabClass() {
-        return `task-tab${this.activeVisitTab === 'ongoing' ? ' active' : ''}`;
-    }
-
-    get completedTabClass() {
-        return `task-tab${this.activeVisitTab === 'completed' ? ' active' : ''}`;
-    }
-
-    get filteredVisits() {
-        const visits = this.visits || [];
-        if (this.activeVisitTab === 'ongoing') {
-            return visits.filter(v => this.normalizeStatus(v.ibfsa__Visit_Status__c) === 'in progress');
-        }
-        if (this.activeVisitTab === 'completed') {
-            return visits.filter(v => this.normalizeStatus(v.ibfsa__Visit_Status__c) === 'completed');
-        }
-        return visits.filter(v => {
-            const status = this.normalizeStatus(v.ibfsa__Visit_Status__c);
-            return status !== 'in progress' && status !== 'completed';
-        });
-    }
-
     get userInitials() {
         return this.userName
             ?.split(' ')
@@ -786,10 +829,95 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
         return this.activeMainScreen === 'field';
     }
 
+    get hasBeatSelected() {
+        return !!this.selectedBeatId;
+    }
+
     get currentMonthLabel() {
+        if (this.dashboardSnapshot?.monthLabel) {
+            return this.dashboardSnapshot.monthLabel;
+        }
         return new Date().toLocaleDateString('en-IN', {
             month: 'long'
         });
+    }
+
+    get monthlyPerformanceLabel() {
+        const rating = this.dashboardSnapshot?.performanceRating;
+        if (rating) return rating;
+        const score = this.salesAchievementPercent;
+        if (score >= 90) return 'Excellent';
+        if (score >= 70) return 'Strong';
+        if (score >= 50) return 'On Track';
+        return 'Needs Focus';
+    }
+
+    get featuredProductName() {
+        return this.newProducts?.[0]?.name || 'Fresh Product';
+    }
+
+    get featuredProductCategory() {
+        return this.newProducts?.[0]?.category || 'General';
+    }
+
+    get featuredSchemeTitle() {
+        return this.dashboardSnapshot?.schemeTitle || this.activeSchemes?.[0]?.title || 'Retail Push';
+    }
+
+    get featuredSchemeDetail() {
+        return this.dashboardSnapshot?.schemeDetail || this.activeSchemes?.[0]?.detail || 'Demo scheme';
+    }
+
+    get actualSalesLabel() {
+        return this.formatINRCurrency(this.salesAchievedAmount);
+    }
+
+    get targetAmountLabel() {
+        return this.formatINRCurrency(this.salesTargetAmount);
+    }
+
+    get achievementPercentLabel() {
+        return `${this.salesAchievementPercent}%`;
+    }
+
+    get achievementProgressStyle() {
+        return `width:${Math.max(0, Math.min(100, this.salesAchievementPercent))}%`;
+    }
+
+    get dashboardCompletedVisits() {
+        const value = Number(this.dashboardSnapshot?.completedVisits);
+        if (!Number.isNaN(value) && value >= 0) return Math.round(value);
+        return this.completedCount;
+    }
+
+    get dashboardPlannedVisits() {
+        const value = Number(this.dashboardSnapshot?.plannedVisits);
+        if (!Number.isNaN(value) && value >= 0) return Math.round(value);
+        return this.totalVisits;
+    }
+
+    get visitProgressLabel() {
+        return `${this.dashboardCompletedVisits}/${this.dashboardPlannedVisits}`;
+    }
+
+    get incentiveAmountLabel() {
+        return this.incentiveCurrentLabel;
+    }
+
+    get avgOrderValueLabel() {
+        const completed = Math.max(this.dashboardCompletedVisits, 1);
+        const avg = Math.round(this.salesAchievedAmount / completed);
+        return this.formatINRCurrency(avg);
+    }
+
+    get pendingCollectionLabel() {
+        return this.formatINRCurrency(this.salesPendingAmount);
+    }
+
+    get activeSchemeCountLabel() {
+        const fromSnapshot = this.dashboardSnapshot?.schemeTitle ? 1 : 0;
+        const fallback = this.activeSchemes?.length || 0;
+        return `${Math.max(fromSnapshot, fallback)}`;
     }
 
 
@@ -827,18 +955,11 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
         this.selectedDate = today;
         this.isToday = true;
         this.dateWindowOffset = DEFAULT_DATE_WINDOW_OFFSET;
-        this.loadAttendance();
-        this.loadTravelSummary();
-        this.loadBeats();
-        this.fetchDayTimelineData();
-
-        if (this.timelineOpen) {
-            this.loadTimelinePopup();
-        }
+        this.refreshDateScopedData();
     }
 
     handleVisitTabChange(event) {
-        const tab = event?.currentTarget?.dataset?.tab;
+        const tab = event?.detail?.tab;
         if (!tab || tab === this.activeVisitTab) return;
         this.activeVisitTab = tab;
     }

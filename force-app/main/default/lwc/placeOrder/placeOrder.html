@@ -1,27 +1,50 @@
 <template>
-    <lightning-card title="Create Order">
+
+
+<lightning-card title="Create Order">
+
+    <!-- STEP INDICATOR -->
+    <lightning-progress-indicator current-step={currentStep} type="path">
+
+        <lightning-progress-step label="Products" value="1"></lightning-progress-step>
+        <lightning-progress-step label="Details" value="2"></lightning-progress-step>
+        <lightning-progress-step label="Payment" value="3"></lightning-progress-step>
+
+    </lightning-progress-indicator>
+
+
+    <!-- ================= STEP 1 PRODUCTS ================= -->
+
+    <template if:true={isStep1}>
+
+        <!-- Franchise + Distributor -->
 
         <div class="slds-p-around_medium">
+
             <lightning-combobox
                 label="Select Franchise"
                 value={selectedFranchise}
                 options={franchiseOptions}
-                disabled={isFranchiseLocked}
                 onchange={handleFranchiseChange}>
             </lightning-combobox>
-        </div>
 
-        <div class="slds-p-around_medium">
             <lightning-combobox
-                label="Select Dealer/Distributor"
+                class="slds-m-top_small"
+                label="Select Distributor"
                 value={selectedDistributor}
                 options={distributorOptions}
                 onchange={handleDistributorChange}>
             </lightning-combobox>
+
         </div>
 
+
+        <!-- PRODUCT GRID (YOUR ORIGINAL STYLE) -->
+
         <div class="slds-grid slds-wrap slds-p-around_medium">
+
             <template for:each={products} for:item="prod">
+
                 <div key={prod.productId}
                      class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3 slds-p-around_small">
 
@@ -36,6 +59,7 @@
                         </h3>
 
                         <div class="slds-m-top_small">
+
                             <lightning-button-icon
                                 icon-name="utility:dash"
                                 data-id={prod.productId}
@@ -51,114 +75,178 @@
                                 data-id={prod.productId}
                                 onclick={increaseQty}>
                             </lightning-button-icon>
+
                         </div>
 
-                        <!-- Schemes are shown only in the summary; removed from product grid -->
+                        <div class="slds-m-top_small">
+                            ₹ {prod.unitPrice}
+                        </div>
 
                     </div>
+
                 </div>
+
             </template>
+
         </div>
 
-        <!-- Summary of selected products -->
-        <template if:true={selectedItemsForSummary.length}>
-            <div class="slds-p-around_medium summary-box">
-                <h3 class="slds-text-heading_small">Order Summary</h3>
-                <div class="slds-m-top_small">
+        <div class="slds-align_absolute-center slds-p-around_medium">
 
-                    <template for:each={selectedItemsForSummary} for:item="item">
-                        <div key={item.productId} class="summary-item-block">
-                            <div class="summary-row">
-                                <div class="summary-col">
-                                    <div class="col-label">Product</div>
-                                    <div class="col-value">{item.productName}</div>
-                                </div>
-                                <div class="summary-col">
-                                    <div class="col-label">Qty</div>
-                                    <div class="col-value">
-                                        <lightning-button-icon
-                                            icon-name="utility:dash"
-                                            data-id={item.productId}
-                                            onclick={decreaseQty}>
-                                        </lightning-button-icon>
-                                        <span class="slds-m-horizontal_small slds-text-heading_medium">
-                                            {item.quantity}
-                                        </span>
-                                        <lightning-button-icon
-                                            icon-name="utility:add"
-                                            data-id={item.productId}
-                                            onclick={increaseQty}>
-                                        </lightning-button-icon>
-                                    </div>
-                                </div>
-                                <div class="summary-col">
-                                    <div class="col-label">Unit Price</div>
-                                    <div class="col-value">{item.unitPriceDisplay}</div>
-                                </div>
-                                <div class="summary-col">
-                                    <div class="col-label">Subtotal</div>
-                                    <div class="col-value">{item.lineTotalDisplay}</div>
-                                </div>
-                                <div class="summary-col">
-                                    <div class="col-label">Discount</div>
-                                    <div class="col-value">{item.discountAmountDisplay}</div>
-                                </div>
-                                <div class="summary-col">
-                                    <div class="col-label">Total After Discount</div>
-                                    <div class="col-value">{item.discountedTotalDisplay}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </template>
+            <lightning-button
+                variant="brand"
+                label="Checkout"
+                onclick={goToStep2}>
+            </lightning-button>
+
+        </div>
+
+    </template>
+
+
+
+    <!-- ================= STEP 2 SUMMARY + ADDRESS ================= -->
+
+    <template if:true={isStep2}>
+
+        <div class="summary-box slds-m-around_medium">
+
+            <h3 class="slds-text-heading_small">Order Summary</h3>
+
+            <template for:each={selectedItemsForSummary} for:item="item">
+
+                <div key={item.productId} class="summary-row">
+
+                    <div>{item.productName}</div>
+                    <div>Qty: {item.quantity}</div>
+                    <div>₹ {item.lineTotalDisplay}</div>
 
                 </div>
-                
-                <!-- Scheme selector below all products -->
-                <div class="slds-m-top_medium slds-border_top slds-p-top_medium">
-                    <h4 class="slds-text-heading_small slds-m-bottom_small">Apply Scheme</h4>
-                    <template if:true={availableSchemes.length}>
-                        <lightning-combobox
-                            name="summaryScheme"
-                            value={selectedSchemeId}
-                            options={availableSchemes}
-                            placeholder="Select scheme"
-                            onchange={handleSummarySchemeChange}>
-                        </lightning-combobox>
-                    </template>
-                    <template if:false={availableSchemes.length}>
-                        <span>No schemes available</span>
-                    </template>
-                </div>
+
+            </template>
+
+            <div class="total-row">
+                Total : ₹ {computedTotalPriceDisplay}
             </div>
-        </template>
 
-        <!-- Total shown below the summary card -->
-        <!-- Invoice-style totals (shown above total) -->
-        <template if:true={selectedItemsForSummary.length}>
-            <div class="invoice-totals slds-p-horizontal_medium slds-m-top_small">
-                <div class="slds-grid slds-grid_align-end">
-                    <div class="slds-col slds-size_1-of-3"></div>
-                    <div class="slds-col slds-size_2-of-3">
-                        <div class="slds-grid slds-grid_vertical-align-center slds-wrap">
-                            <div class="slds-col slds-size_1-of-2">Subtotal:</div>
-                            <div class="slds-col slds-size_1-of-2">{selectedItemsSubtotalDisplay}</div>
-                            <div class="slds-col slds-size_1-of-2">Total Discount:</div>
-                            <div class="slds-col slds-size_1-of-2">{selectedItemsTotalDiscountDisplay}</div>
-                            <div class="slds-col slds-size_1-of-2 slds-text-bold">Grand Total:</div>
-                            <div class="slds-col slds-size_1-of-2 slds-text-bold">{computedTotalPriceDisplay}</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </template>
+        </div>
+
+
+        <!-- BILLING -->
+
+        <div class="slds-box slds-m-around_medium">
+
+            <h3>Billing Details</h3>
+
+            <lightning-input label="Street" data-field="billingStreet"
+                             value={billingStreet}
+                             onchange={handleInputChange}></lightning-input>
+
+            <lightning-input label="City" data-field="billingCity"
+                             value={billingCity}
+                             onchange={handleInputChange}></lightning-input>
+
+            <lightning-record-picker
+                label="Bill To Contact"
+                object-api-name="Contact"
+                value={billToContactId}
+                onchange={handleBillContactChange}>
+            </lightning-record-picker>
+
+        </div>
+
+
+        <!-- SHIPPING -->
+
+        <div class="slds-box slds-m-around_medium">
+
+            <h3>Shipping Details</h3>
+
+            <lightning-input label="Street" data-field="shippingStreet"
+                             value={shippingStreet}
+                             onchange={handleInputChange}></lightning-input>
+
+            <lightning-input label="City" data-field="shippingCity"
+                             value={shippingCity}
+                             onchange={handleInputChange}></lightning-input>
+
+            <lightning-record-picker
+                label="Ship To Contact"
+                object-api-name="Contact"
+                value={shipToContactId}
+                onchange={handleShipContactChange}>
+            </lightning-record-picker>
+
+        </div>
+
 
         <div class="slds-align_absolute-center slds-p-around_medium">
+
+            <lightning-button
+                label="Back"
+                onclick={goToStep1}>
+            </lightning-button>
+
+            <lightning-button
+                variant="brand"
+                label="Proceed to Payment"
+                onclick={goToStep3}
+                class="slds-m-left_small">
+            </lightning-button>
+
+        </div>
+
+    </template>
+
+
+
+    <!-- ================= STEP 3 PAYMENT ================= -->
+
+    <template if:true={isStep3}>
+
+        <div class="slds-box slds-m-around_medium">
+
+            <h3>Payment</h3>
+
+            <lightning-input
+                type="number"
+                label="Payment Amount"
+                value={paymentAmount}
+                onchange={handlePaymentChange}>
+            </lightning-input>
+
+            <lightning-combobox
+                label="Payment Mode"
+                value={paymentMode}
+                options={paymentModeOptions}
+                onchange={handlePaymentModeChange}>
+            </lightning-combobox>
+
+            <div class="slds-m-top_small">
+                Total Amount : ₹ {computedTotalPriceDisplay}
+            </div>
+
+        </div>
+
+
+        <div class="slds-align_absolute-center slds-p-around_medium">
+
+            <lightning-button
+                label="Back"
+                onclick={goToStep2}>
+            </lightning-button>
+
             <lightning-button
                 variant="brand"
                 label="Place Order"
-                onclick={saveOrder}>
+                onclick={saveOrder}
+                class="slds-m-left_small">
             </lightning-button>
+
         </div>
 
-    </lightning-card>
+    </template>
+
+</lightning-card>
+
+
 </template>

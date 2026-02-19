@@ -3,11 +3,14 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 export default class VisitTile extends LightningElement {
 
     @api visit;
-    @api showConnector = false;
 
     /* =====================
        GETTERS
     ====================== */
+    get visitNumber() {
+        return this.visit?.Name || this.visit?.Id || '--';
+    }
+
     get outletName() {
         const account = this.visit?.ibfsa__Outlet1__r;
         return account?.Name || 'Unknown Outlet';
@@ -42,6 +45,11 @@ export default class VisitTile extends LightningElement {
         return this.visit?.ibfsa__Visit_Status__c || 'Unknown';
     }
 
+    get outletPhone() {
+        const account = this.visit?.ibfsa__Outlet1__r;
+        return account?.Phone || account?.ibfsa__Phone__c || null;
+    }
+
     get statusKey() {
         const raw = (this.visit?.ibfsa__Visit_Status__c || '').trim().toLowerCase();
         const cleaned = raw.replace(/[^a-z]+/g, '-').replace(/(^-|-$)/g, '');
@@ -52,18 +60,8 @@ export default class VisitTile extends LightningElement {
         return `status-badge ${this.statusKey}`;
     }
 
-    get dotClass() {
-        if (this.statusKey === 'completed') return 'dot done';
-        if (this.statusKey === 'in-progress') return 'dot active';
-        return 'dot';
-    }
-
     get cardClass() {
         return `visit-card status-${this.statusKey}`;
-    }
-
-    get wrapperClass() {
-        return `timeline-wrapper${this.showConnector ? '' : ' no-connector'}`;
     }
 
     /* =====================
@@ -85,6 +83,20 @@ export default class VisitTile extends LightningElement {
 
         // Works in Salesforce desktop + mobile
         window.open(mapUrl, '_blank');
+    }
+
+    handleCall(event) {
+        event?.stopPropagation();
+        if (!this.outletPhone) {
+            this.showToast('Phone unavailable', 'Outlet phone is not available.', 'warning');
+            return;
+        }
+        window.open(`tel:${this.outletPhone}`, '_self');
+    }
+
+    handleEdit(event) {
+        event?.stopPropagation();
+        this.showToast('Edit', 'Edit action can be mapped here.', 'info');
     }
 
     handleCardClick() {

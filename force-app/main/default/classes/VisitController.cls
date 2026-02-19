@@ -85,6 +85,125 @@ public with sharing class VisitController {
         return TravelDistanceService.getTravelSummaryByDate(targetDate);
     }
 
+    @AuraEnabled(cacheable=true)
+    public static DashboardSnapshot getDashboardSnapshot(String visitDate) {
+        Date targetDate = Date.today();
+        if (!String.isBlank(visitDate)) {
+            try {
+                targetDate = Date.valueOf(visitDate);
+            } catch (Exception ex) {
+                try {
+                    targetDate = Datetime.valueOfGmt(visitDate).dateGmt();
+                } catch (Exception ignored) {
+                    targetDate = Date.today();
+                }
+            }
+        }
+
+        Id userId = UserInfo.getUserId();
+        Integer monthNum = targetDate.month();
+        Integer yearNum = targetDate.year();
+
+        DashboardSnapshot snapshot = new DashboardSnapshot();
+        List<String> monthNames = new List<String>{
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        };
+        Integer safeMonthIndex = Math.max(1, Math.min(12, monthNum));
+        snapshot.monthLabel = monthNames[safeMonthIndex - 1];
+
+        List<Sales_Target__c> targetRows = [
+            SELECT Id, Name, Target_Amount__c
+            FROM Sales_Target__c
+            WHERE Sales_Rep__c = :userId
+            AND CALENDAR_MONTH(Month_Year__c) = :monthNum
+            AND CALENDAR_YEAR(Month_Year__c) = :yearNum
+            ORDER BY Month_Year__c DESC
+            LIMIT 1
+        ];
+        if (!targetRows.isEmpty()) {
+            snapshot.salesTargetName = targetRows[0].Name;
+            snapshot.targetAmount = targetRows[0].Target_Amount__c;
+        }
+
+        List<Monthly_Performance__c> perfRows = [
+            SELECT
+                Id,
+                Name,
+                Actual_Sales__c,
+                Achievement__c,
+                Completed_Visits__c,
+                Planned_Visits__c,
+                Visit_Completion__c,
+                Performance_Rating__c
+            FROM Monthly_Performance__c
+            WHERE Sales_Rep__c = :userId
+            AND CALENDAR_MONTH(Month_Year__c) = :monthNum
+            AND CALENDAR_YEAR(Month_Year__c) = :yearNum
+            ORDER BY Month_Year__c DESC
+            LIMIT 1
+        ];
+        if (!perfRows.isEmpty()) {
+            Monthly_Performance__c row = perfRows[0];
+            snapshot.monthlyPerformanceName = row.Name;
+            snapshot.actualSales = row.Actual_Sales__c;
+            snapshot.achievementPercent = row.Achievement__c;
+            snapshot.completedVisits = row.Completed_Visits__c;
+            snapshot.plannedVisits = row.Planned_Visits__c;
+            snapshot.visitCompletionPercent = row.Visit_Completion__c;
+            snapshot.performanceRating = row.Performance_Rating__c;
+        }
+
+        List<Incentive__c> incentiveRows = [
+            SELECT Id, Name, Incentive_Amount__c, Monthly_Performance__c, Monthly_Performance__r.Month_Year__c
+            FROM Incentive__c
+            WHERE Sales_Rep__c = :userId
+            AND Monthly_Performance__c != null
+            AND CALENDAR_MONTH(Monthly_Performance__r.Month_Year__c) = :monthNum
+            AND CALENDAR_YEAR(Monthly_Performance__r.Month_Year__c) = :yearNum
+            ORDER BY CreatedDate DESC
+            LIMIT 1
+        ];
+        if (!incentiveRows.isEmpty()) {
+            snapshot.incentiveName = incentiveRows[0].Name;
+            snapshot.incentiveAmount = incentiveRows[0].Incentive_Amount__c;
+        }
+
+        List<Scheme__c> schemeRows = [
+            SELECT Id, Name, Scheme_Name__c, Description__c
+            FROM Scheme__c
+            WHERE Active__c = true
+            AND (Start_Date__c = null OR Start_Date__c <= :targetDate)
+            AND (End_Date__c = null OR End_Date__c >= :targetDate)
+            ORDER BY Start_Date__c DESC
+            LIMIT 1
+        ];
+        if (!schemeRows.isEmpty()) {
+            Scheme__c row = schemeRows[0];
+            snapshot.schemeTitle = String.isBlank(row.Scheme_Name__c) ? row.Name : row.Scheme_Name__c;
+            snapshot.schemeDetail = row.Description__c;
+        }
+
+        return snapshot;
+    }
+
+    public class DashboardSnapshot {
+        @AuraEnabled public String monthLabel;
+        @AuraEnabled public String salesTargetName;
+        @AuraEnabled public Decimal targetAmount;
+        @AuraEnabled public String monthlyPerformanceName;
+        @AuraEnabled public Decimal actualSales;
+        @AuraEnabled public Decimal achievementPercent;
+        @AuraEnabled public Decimal completedVisits;
+        @AuraEnabled public Decimal plannedVisits;
+        @AuraEnabled public Decimal visitCompletionPercent;
+        @AuraEnabled public String performanceRating;
+        @AuraEnabled public String incentiveName;
+        @AuraEnabled public Decimal incentiveAmount;
+        @AuraEnabled public String schemeTitle;
+        @AuraEnabled public String schemeDetail;
+    }
+
     /* =========================================================
        TODAY BEATS
     ========================================================= */
@@ -156,6 +275,7 @@ public with sharing class VisitController {
                 ibfsa__Outlet1__c,
                 ibfsa__Outlet1__r.Name,
                 ibfsa__Outlet1__r.ShippingAddress,
+                ibfsa__Outlet1__r.Phone,
                 ibfsa__Outlet1__r.ibfsa__Outlet_Location__Latitude__s,
                 ibfsa__Outlet1__r.ibfsa__Outlet_Location__Longitude__s
                 
@@ -192,6 +312,7 @@ public with sharing class VisitController {
                 ibfsa__Outlet1__c,
                 ibfsa__Outlet1__r.Name,
                 ibfsa__Outlet1__r.ShippingAddress,
+                ibfsa__Outlet1__r.Phone,
                 ibfsa__Outlet1__r.ibfsa__Outlet_Location__Latitude__s,
                 ibfsa__Outlet1__r.ibfsa__Outlet_Location__Longitude__s
 
@@ -225,16 +346,35 @@ public with sharing class VisitController {
                ibfsa__Check_In_Time__c,
                ibfsa__Check_Out_Time__c,
                ibfsa__Actual_Duration__c,
+               Meeting_Notes__c,
 
                ibfsa__Outlet1__c,
                ibfsa__Outlet1__r.Name,
                ibfsa__Outlet1__r.ShippingAddress,
+               ibfsa__Outlet1__r.Phone,
                ibfsa__Outlet1__r.ibfsa__Outlet_Location__Latitude__s,
                ibfsa__Outlet1__r.ibfsa__Outlet_Location__Longitude__s
             FROM Visit__c
             WHERE Id = :visitId
             LIMIT 1
         ];
+    }
+
+    @AuraEnabled
+    public static void saveMeetingNotes(Id visitId, String notes) {
+        if (visitId == null) {
+            throw new AuraHandledException('Visit id is required.');
+        }
+
+        Visit__c visitRecord = [
+            SELECT Id, Meeting_Notes__c
+            FROM Visit__c
+            WHERE Id = :visitId
+            LIMIT 1
+        ];
+
+        visitRecord.Meeting_Notes__c = notes;
+        update visitRecord;
     }
 
     /* =========================================================

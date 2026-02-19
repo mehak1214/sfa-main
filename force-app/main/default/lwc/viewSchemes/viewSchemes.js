@@ -25,7 +25,7 @@ export default class ViewSchemes extends NavigationMixin(LightningElement) {
     }
 
     schemes = [];
-    filterValue = 'all'; // all, active, inactive
+    filterValue = 'active'; // all, active, inactive
     sortValue = 'name'; // name, discount, threshold
 
     filterOptions = [

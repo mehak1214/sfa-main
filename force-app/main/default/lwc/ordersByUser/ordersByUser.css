@@ -1,0 +1,187 @@
+.orders-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.order-card {
+    border: 1px solid #d1d5da;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.order-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-color: #0070d2;
+    transform: translateY(-2px);
+}
+
+/* ========== ORDER HEADER ========== */
+.order-header {
+    background: linear-gradient(135deg, #f5f6f9 0%, #eff0f5 100%);
+    border-bottom: 2px solid #e5e7eb;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    padding: 1.25rem !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.order-header:hover {
+    background: linear-gradient(135deg, #eef0f6 0%, #e8eaf0 100%);
+}
+
+.header-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.order-number-container {
+    display: flex;
+    align-items: center;
+}
+
+.order-number {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0070d2;
+    letter-spacing: -0.5px;
+}
+
+.order-amount-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.order-amount {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.order-date {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #4a5568;
+}
+
+.status-wrapper {
+    display: flex;
+    align-items: flex-start;
+    min-width: fit-content;
+}
+
+/* ========== STATUS BADGE ========== */
+.status-badge {
+    display: inline-block;
+    padding: 0.375rem 0.875rem;
+    border-radius: 16px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.status-badge[data-status="Draft"] {
+    background-color: #f0f0f0;
+    color: #525252;
+}
+
+.status-badge[data-status="Activated"] {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-badge[data-status="Completed"] {
+    background-color: #cfe2ff;
+    color: #084298;
+}
+
+.status-badge[data-status="Cancelled"] {
+    background-color: #f8d7da;
+    color: #842029;
+}
+
+/* ========== ORDER FOOTER ========== */
+.order-footer {
+    background-color: #f9fafb;
+    padding: 1rem !important;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: center;
+}
+
+.slds-button {
+    padding: 0.625rem 1.5rem !important;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+}
+
+.slds-button:hover {
+    transform: translateY(-2px);
+}
+
+/* ========== RESPONSIVE DESIGN ========== */
+@media (max-width: 768px) {
+    .order-card {
+        border-radius: 4px;
+    }
+
+    .order-number {
+        font-size: 1.25rem;
+    }
+
+    .order-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .header-content {
+        width: 100%;
+    }
+
+    .status-wrapper {
+        align-self: flex-start;
+    }
+
+    .order-header,
+    .order-footer {
+        padding: 1rem !important;
+    }
+
+    .slds-button {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .order-number {
+        font-size: 1.125rem;
+    }
+
+    .order-amount {
+        font-size: 1rem;
+    }
+
+    .order-date {
+        font-size: 0.9rem;
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.625rem;
+        font-size: 0.75rem;
+    }
+
+}

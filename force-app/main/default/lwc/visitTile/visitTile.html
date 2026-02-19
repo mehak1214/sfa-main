@@ -1,52 +1,19 @@
 <template>
-    <div class={wrapperClass}>
-        <template if:true={showConnector}>
-            <div class="connector-col">
-                <div class={dotClass}></div>
-                <div class="line"></div>
-            </div>
-        </template>
-
-    <!-- MOVE CLICK HERE -->
     <div class={cardClass}
          role="button"
          tabindex="0"
          onclick={handleCardClick}
          onkeydown={handleCardKeydown}>
+        <div class="head-row">
+            <span class="visit-no">Visit No: {visitNumber}</span>
+        </div>
 
-        <div class="card-body">
+        <strong class="outlet-name">{outletName}</strong>
+        <p class="address-text">{outletAddress}</p>
 
-                <div class="top-row">
-                    <div class="title-block">
-                        <strong class="outlet-name">{outletName}</strong>
-                    </div>
-                    <button class="map-circle-btn"
-                            type="button"
-                            onclick={navigateToMap}
-                            title="View Map">
-                        <lightning-icon
-                            icon-name="utility:location"
-                            size="x-small"
-                            alternative-text="View Map">
-                        </lightning-icon>
-                    </button>
-                </div>
-
-                <p class="address">
-                    <lightning-icon
-                        class="address-icon"
-                        icon-name="utility:home"
-                        size="x-small"
-                        alternative-text="">
-                    </lightning-icon>
-                    <span class="address-text">{outletAddress}</span>
-                </p>
-
-                <div class="footer-row">
-                    <span class={statusBadgeClass}>{visitStatus}</span>
-                </div>
-
-            </div>
+        <div class="foot-row">
+            <span class={statusBadgeClass}>{visitStatus}</span>
+            <button type="button" class="dir-btn" onclick={navigateToMap}>Get Directions</button>
         </div>
     </div>
 </template>

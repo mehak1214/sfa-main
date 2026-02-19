@@ -13,16 +13,32 @@
                         <lightning-icon icon-name="utility:chevronleft" size="x-small"></lightning-icon>
                         <span>Back</span>
                     </button>
-                    <div class="hero-badges">
-                        <span class="badge-label">Visit Status</span>
-                        <span class={statusBadgeClass}>{visitStatus}</span>
+                    <div class="hero-top-right">
+                        <div class="hero-badges">
+                            <span class="badge-label">Visit Status</span>
+                            <span class={statusBadgeClass}>{visitStatus}</span>
+                        </div>
+                        <template if:true={hasOutletPhoto}>
+                            <div class="hero-thumb">
+                                <img src={outletPhotoUrl} alt="Outlet photo" />
+                            </div>
+                        </template>
                     </div>
                 </div>
 
                 <div class="hero-body">
                     <div class="hero-text">
                         <p class="eyebrow">Visit #{sequenceLabel}</p>
-                        <h2 class="title">{outletName}</h2>
+                        <h2 class="title">
+                            <button
+                                type="button"
+                                class="outlet-link"
+                                onclick={handleOpenOutlet360}
+                                disabled={outletLinkDisabled}
+                                title="Open Outlet 360">
+                                {outletName}
+                            </button>
+                        </h2>
                         <p class="address">{outletAddress}</p>
 
                         <div class="hero-actions">
@@ -33,11 +49,6 @@
                         </div>
                     </div>
 
-                    <template if:true={hasOutletPhoto}>
-                        <div class="hero-photo">
-                            <img src={outletPhotoUrl} alt="Outlet photo" />
-                        </div>
-                    </template>
                 </div>
             </div>
 
@@ -86,6 +97,18 @@
                             </button>
                         </template>
 
+                        <template if:true={showDayCompletedMessage}>
+                            <div class="day-completed-message">
+                                Day already completed.
+                            </div>
+                        </template>
+
+                        <template if:true={showStartDayMessage}>
+                            <div class="start-day-message">
+                                To check-in, start your day first.
+                            </div>
+                        </template>
+
                         <template if:true={hasVisitPhoto}>
                             <button class="btn secondary action-photo" onclick={handleOpenPhotoModal} type="button" title="Preview Visit Photo">
                                 <lightning-icon icon-name="utility:image" size="x-small"></lightning-icon>
@@ -100,6 +123,13 @@
                             </button>
                         </template>
 
+                        <!-- <template if:false={hasVisitPhoto}> -->
+                        <button class="btn primary" onclick={handleOpenSchemesModal} type="button">
+                            <lightning-icon icon-name="utility:camera" size="x-small"></lightning-icon>
+                            <span>Schemes</span>
+                        </button>
+                        <!-- </template> -->
+
                         <button class="btn primary action-order" onclick={handleToggleOrderPanel} type="button">
                             <lightning-icon icon-name="utility:cart" size="x-small"></lightning-icon>
                             <span>{orderToggleLabel}</span>
@@ -108,14 +138,29 @@
                     </div>
                 </div>
 
-                <template if:true={showOrderPanel}>
-                    <div class="card order-card">
-                        <div class="card-head">
-                            <span class="card-title">Order</span>
-                        </div>
-                        <c-place-order></c-place-order>
+                <div class="card">
+                    <div class="card-head with-actions">
+                        <span class="card-title">Meeting Notes</span>
+                        <button class="btn secondary notes-save-btn" onclick={handleSaveMeetingNotes} type="button" disabled={meetingNotesSaving}>
+                            Save Notes
+                        </button>
                     </div>
-                </template>
+                    <lightning-textarea
+                        label="Visit Discussion"
+                        value={meetingNotes}
+                        onchange={handleMeetingNotesChange}
+                        placeholder="Add meeting summary, commitments, next steps...">
+                    </lightning-textarea>
+
+                    <div class="notes-upload">
+                        <lightning-file-upload
+                            label="Attach files to this visit"
+                            record-id={currentVisitId}
+                            multiple
+                            onuploadfinished={handleVisitFileUploadFinished}>
+                        </lightning-file-upload>
+                    </div>
+                </div>
 
             </div>
         </div>
@@ -137,6 +182,42 @@
                             Delete Photo
                         </button>
                         <button class="btn secondary" onclick={handleClosePhotoModal} type="button">Close</button>
+                    </footer>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open"></div>
+        </template>
+
+        <!-- Schemes modal -->
+        <template if:true={isSchemesModalOpen}>
+            <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="visitSchemesModalHeading" class="slds-modal slds-fade-in-open slds-modal_large">
+                <div class="slds-modal__container">
+                    <header class="slds-modal__header">
+                        <h2 id="visitSchemesModalHeading" class="slds-text-heading_medium">Schemes</h2>
+                    </header>
+                    <div class="slds-modal__content slds-p-around_medium schemes-modal-content" id="visitSchemesModalContent">
+                        <c-view-schemes></c-view-schemes>
+                    </div>
+                    <footer class="slds-modal__footer">
+                        <button class="btn secondary" onclick={handleCloseSchemesModal} type="button">Close</button>
+                    </footer>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open"></div>
+        </template>
+
+        <!-- Order modal -->
+        <template if:true={showOrderPanel}>
+            <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="visitOrderModalHeading" class="slds-modal slds-fade-in-open slds-modal_large">
+                <div class="slds-modal__container">
+                    <header class="slds-modal__header">
+                        <h2 id="visitOrderModalHeading" class="slds-text-heading_medium">Order</h2>
+                    </header>
+                    <div class="slds-modal__content slds-p-around_medium order-modal-content" id="visitOrderModalContent">
+                        <c-place-order franchise-id={visitFranchiseId}></c-place-order>
+                    </div>
+                    <footer class="slds-modal__footer">
+                        <button class="btn secondary" onclick={handleToggleOrderPanel} type="button">Close</button>
                     </footer>
                 </div>
             </section>
