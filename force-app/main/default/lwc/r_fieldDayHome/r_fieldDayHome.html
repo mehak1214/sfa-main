@@ -1,186 +1,204 @@
 <template>
-    <div class="page">
-
-        <div class="header">
-            <div class="header-content">
-                <div class="greeting">
-                    <p class="eyebrow">Field Day</p>
-                    <h2>Hello, {userName}</h2>
-                    <p class="subtitle">Let's crush your goals today.</p>
+    <div class="mobile">
+        <template if:true={isDashboardScreen}>
+            <section class="hero">
+                <div class="hero-avatar">{userInitials}</div>
+                <div class="hero-copy">
+                    <span class="hero-small">FIELD DAY</span>
+                    <h1>Welcome, {firstName}</h1>
+                    <p>{journeyStateLabel}</p>
                 </div>
-                <div class="header-actions">
-                    <template if:true={showStartDayButton}>
-                        <button class="day-btn start" onclick={handleStartDay} type="button" disabled={startDayDisabled}>
-                            <lightning-icon icon-name="utility:play" size="x-small"></lightning-icon>
-                            Start Day
-                        </button>
-                    </template>
-                    <template if:true={showEndDayButton}>
-                        <button class="day-btn end" onclick={handleEndDay} type="button" disabled={endDayDisabled}>
-                            End Day
-                        </button>
-                    </template>
-                    <template if:true={showDayEndedButton}>
-                        <button class="day-btn ended" type="button" disabled>
-                            <lightning-icon icon-name="utility:check" size="x-small" variant="inverse"></lightning-icon>
-                            Day Ended
-                        </button>
-                    </template>
-                </div>
-            </div>
-        </div>
-
-        <div class="calendar-bar card-anim">
-            <button class="nav-btn" onclick={handlePrevWindow} type="button">
-                <lightning-icon icon-name="utility:chevronleft" size="x-small"></lightning-icon>
-            </button>
-
-            <div class="date-strip">
-                <template for:each={dateOptions} for:item="d">
-                    <button key={d.value} class={d.class} data-date={d.value} onclick={handleDateChange} type="button">
-                        <span class="day">{d.day}</span>
-                        <span class="date-num">{d.date}</span>
-                    </button>
+                <template if:true={showStartDayButton}>
+                    <button class="start-btn" onclick={handleStartDay}>Start Day</button>
                 </template>
-            </div>
+                <template if:true={showEndDayButton}>
+                    <button class="end-btn" onclick={handleEndDay}>End Day</button>
+                </template>
+                <template if:true={showDayEndedButton}>
+                    <button class="done-btn" disabled>Day Ended</button>
+                </template>
+            </section>
 
-            <button class="today-btn" onclick={handleTodayJump} type="button">Today</button>
+            <section class="dash-actions">
+                <button class="action-btn primary" onclick={handleBeatToggle}>
+                    <span>{beatLabel}</span>
+                    <lightning-icon icon-name="utility:chevrondown" size="x-small" alternative-text="Select Beat"></lightning-icon>
+                </button>
 
-            <button class="nav-btn" onclick={handleNextWindow} type="button">
-                <lightning-icon icon-name="utility:chevronright" size="x-small"></lightning-icon>
-            </button>
-        </div>
-
-        <button class="timeline-fab" onclick={handleTimelineClick} type="button" title="Timeline">
-            <lightning-icon icon-name="utility:fallback" size="small"></lightning-icon>
-        </button>
-
-        <template if:true={timelineOpen}>
-            <div class="timeline-backdrop" onclick={handleTimelineClick}></div>
-            <section class="timeline-popup" role="dialog" aria-modal="true">
-                <div class="timeline-popup-header">
-                    <div class="timeline-popup-title">
-                        <lightning-icon icon-name="utility:fallback" size="x-small"></lightning-icon>
-                        <span>Timeline</span>
+                <template if:true={showBeatDropdown}>
+                    <div class="beat-list">
+                        <template for:each={beatOptions} for:item="beat">
+                            <button key={beat.Id}
+                                    class={beat.rowClass}
+                                    data-id={beat.Id}
+                                    data-name={beat.Name}
+                                    onclick={handleBeatSelect}>
+                                <span>{beat.Name}</span>
+                                <span class="beat-check">{beat.checkMark}</span>
+                            </button>
+                        </template>
                     </div>
-                    <button class="icon-btn" onclick={handleTimelineClick} type="button" title="Close">
-                        <lightning-icon icon-name="utility:close" size="x-small"></lightning-icon>
-                    </button>
+                </template>
+            </section>
+
+            <section class="performance-head">
+                <h2>My Performance</h2>
+                <span class="month-chip">
+                    <lightning-icon icon-name="utility:event" size="xx-small" alternative-text="Month"></lightning-icon>
+                    This Month
+                </span>
+            </section>
+
+            <section class="insight-card">
+                <h3>Well Done!</h3>
+                <p>Your productivity is {performanceLiftPercent}% higher than last month.</p>
+            </section>
+
+            <section class="incentive-card">
+                <h3>Incentives</h3>
+                <div class="amount-row">
+                    <strong>{incentiveCurrentLabel}</strong>
+                    <span>/{incentiveTargetLabel}</span>
+                    <span class="inc-badge">{incentivePercent}%</span>
                 </div>
 
-                <div class="timeline-popup-body">
-                    <template if:true={timelineLoading}>
-                        <div class="timeline-loading">
-                            <lightning-spinner size="small" alternative-text="Loading"></lightning-spinner>
+                <div class="incentive-track">
+                    <div class="track-base"></div>
+                    <div class="track-dot start"></div>
+                    <div class="track-dot mid"></div>
+                    <div class="track-dot end"></div>
+                </div>
+
+                <div class="track-labels">
+                    <span>{incentiveCurrentLabel}</span>
+                    <span>{incentiveMidLabel}</span>
+                    <span>{incentiveTargetLabel}</span>
+                </div>
+            </section>
+
+            <section class="new-products">
+                <div class="new-products-head">
+                    <h3>New Products</h3>
+                    <span>Fresh Picks</span>
+                </div>
+
+                <template for:each={newProducts} for:item="product">
+                    <div key={product.id} class="product-item">
+                        <div class="product-copy">
+                            <strong>{product.name}</strong>
+                            <span>{product.category}</span>
                         </div>
-                    </template>
-
-                    <template if:false={timelineLoading}>
-                        <template if:true={timelineVisits.length}>
-                            <template for:each={timelineVisits} for:item="visit">
-                                <c-visit-tile
-                                    key={visit.Id}
-                                    visit={visit}
-                                    day-started={dayStarted}
-                                    day-ended={dayEnded}
-                                    is-today={isToday}
-                                    show-connector
-                                    onrefresh={handleRefresh}
-                                    onopenvisit={handleOpenVisit}>
-                                </c-visit-tile>
-                            </template>
-                        </template>
-
-                        <template if:false={timelineVisits.length}>
-                            <div class="empty-state">
-                                <p class="empty-sub">No timeline visits for this date.</p>
-                            </div>
-                        </template>
-                    </template>
-                </div>
+                        <button class="product-btn" type="button">Focus</button>
+                    </div>
+                </template>
             </section>
         </template>
 
-        <div class="summary-row card-anim" style="animation-delay: 0.12s">
-            <div class="summary-pill progress summary-progress">
-                <span class="pill-label">Progress</span>
-                <strong class="pill-value">{progressPercentage}%</strong>
-                <div class="progress-bar-mini">
-                    <div class="fill" style={progressStyle}></div>
+        <template if:true={isFieldScreen}>
+            <section class="field-header">
+                <button class="back-btn" onclick={handleBackToDashboard}>&larr;</button>
+                <div>
+                    <span>Current Beat</span>
+                    <h3>{beatLabel}</h3>
                 </div>
-            </div>
-            <div class={summaryCompletedClass}>
-                <span class="pill-label">Completed</span>
-                <strong class="pill-value">{completedCount}</strong>
-            </div>
-            <div class={summaryProgressClass}>
-                <span class="pill-label">In Progress</span>
-                <strong class="pill-value">{inProgressCount}</strong>
-            </div>
-            <div class={summaryPendingClass}>
-                <span class="pill-label">Pending</span>
-                <strong class="pill-value">{pendingCount}</strong>
-            </div>
-        </div>
+            </section>
 
-        <div class="beat-container card-anim" style="animation-delay: 0.2s">
-            <button class="beat-card" onclick={handleBeatToggle} type="button">
-                <div class="beat-info">
-                    <p class="beat-label-small">Current Beat</p>
-                    <div class="beat-name">{beatLabel}</div>
-                </div>
-                <lightning-icon icon-name="utility:chevrondown" size="x-small"></lightning-icon>
-            </button>
+            <section class="date-strip">
+                <button class="arrow" onclick={handlePrevWindow}>&lsaquo;</button>
 
-            <template if:true={showBeatDropdown}>
-                <div class="beat-list">
-                    <template for:each={beats} for:item="beat">
-                        <button key={beat.Id} class="beat-item" data-id={beat.Id} data-name={beat.Name} onclick={handleBeatSelect} type="button">
-                            <div class="beat-item-main">
-                                <span class="beat-item-name">{beat.Name}</span>
-                                <template if:true={beat.rangeLabel}>
-                                    <span class="beat-item-sub">{beat.rangeLabel}</span>
-                                </template>
-                            </div>
-                            <lightning-icon class="beat-item-icon" icon-name="utility:chevronright" size="xx-small"></lightning-icon>
-                        </button>
-                    </template>
-                </div>
-            </template>
-        </div>
-
-        <div class="visits card-anim" style="animation-delay: 0.25s">
-            <template if:false={viewMode}>
-                <div class="empty-state">
-                    <lightning-icon icon-name="utility:checkin" size="medium" variant="inverse" class="slds-m-bottom_small"></lightning-icon>
-                    <p class="empty-title">Ready to work?</p>
-                    <p class="empty-sub">Select a beat above to see your stops.</p>
-                </div>
-            </template>
-
-            <template if:true={viewMode}>
-                <template if:true={visits.length}>
-                    <template for:each={visits} for:item="visit">
-                        <c-visit-tile
-                            key={visit.Id}
-                            visit={visit}
-                            day-started={dayStarted}
-                            day-ended={dayEnded}
-                            is-today={isToday}
-                            show-connector={isTimelineMode}
-                            onrefresh={handleRefresh}
-                            onopenvisit={handleOpenVisit}>
-                        </c-visit-tile>
-                    </template>
+                <template for:each={dateOptions} for:item="d">
+                    <button key={d.value}
+                            class={d.class}
+                            data-date={d.value}
+                            onclick={handleDateChange}>
+                        <span class="day">{d.day}</span>
+                        <span class="num">{d.date}</span>
+                    </button>
                 </template>
 
-                <template if:false={visits.length}>
-                    <div class="empty-state">
-                        <p class="empty-sub">No visits scheduled for this beat.</p>
+                <button class="today" onclick={handleTodayJump}>Today</button>
+                <button class="arrow" onclick={handleNextWindow}>&rsaquo;</button>
+            </section>
+
+            <section class="segment">
+                <button class={operationsTabClass}
+                        data-screen="operations"
+                        onclick={handleScreenChange}>
+                    Operations
+                </button>
+                <button class={travelTabClass}
+                        data-screen="travel"
+                        onclick={handleScreenChange}>
+                    Travel & Expense
+                </button>
+            </section>
+
+            <template if:true={isOperationsScreen}>
+                <section class="visit-tabs">
+                    <button class={upcomingTabClass}
+                            data-tab="upcoming"
+                            onclick={handleVisitTabChange}>
+                        Upcoming
+                    </button>
+                    <button class={ongoingTabClass}
+                            data-tab="ongoing"
+                            onclick={handleVisitTabChange}>
+                        Ongoing
+                    </button>
+                    <button class={completedTabClass}
+                            data-tab="completed"
+                            onclick={handleVisitTabChange}>
+                        Completed
+                    </button>
+                </section>
+
+                <section class="visit-list">
+                    <template if:true={filteredVisits.length}>
+                        <template for:each={filteredVisits} for:item="visit">
+                            <c-visit-tile
+                                key={visit.Id}
+                                visit={visit}
+                                day-started={dayStarted}
+                                day-ended={dayEnded}
+                                is-today={isToday}
+                                onopenvisit={handleOpenVisit}
+                                onrefresh={handleRefresh}>
+                            </c-visit-tile>
+                        </template>
+                    </template>
+
+                    <template if:false={filteredVisits.length}>
+                        <div class="empty">
+                            <p>No visits found</p>
+                            <span>Select another tab or date to view visits.</span>
+                        </div>
+                    </template>
+                </section>
+            </template>
+
+            <template if:true={isTravelScreen}>
+                <section class="travel-card">
+                    <div class="travel-head">
+                        <span>TRAVEL & EXPENSE</span>
+                        <h3>{selectedDateLabel}</h3>
                     </div>
-                </template>
-            </template>
-        </div>
 
+                    <div class="travel-box">
+                        <span>DISTANCE</span>
+                        <h4>{todayDistanceKmLabel}</h4>
+                    </div>
+
+                    <div class="travel-box">
+                        <span>ELIGIBLE KM</span>
+                        <h4>{eligibleDistanceKmLabel}</h4>
+                    </div>
+
+                    <div class="travel-box">
+                        <span>EXPENSE</span>
+                        <h4>{estimatedExpenseLabel}</h4>
+                    </div>
+                </section>
+            </template>
+        </template>
     </div>
 </template>

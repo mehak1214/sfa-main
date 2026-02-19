@@ -1,32 +1,53 @@
 // Import required base classes and decorators from LWC
-import { LightningElement, track, wire } from 'lwc';
+import { LightningElement, api, track, wire } from 'lwc';
 
-/* Apex methods (backend calls) */
+// Import Apex methods for backend operations
 import getFranchiseAccounts from '@salesforce/apex/PlaceOrderController.getFranchiseAccounts';
 import getDistributorAccounts from '@salesforce/apex/PlaceOrderController.getDistributorAccounts';
 import getProductsByDistributor from '@salesforce/apex/PlaceOrderController.getProductsByDistributor';
+import getSchemesByThresholdQuantity from '@salesforce/apex/PlaceOrderController.getSchemesByThresholdQuantity';
 import placeOrder from '@salesforce/apex/PlaceOrderController.placeOrder';
 
-// Import toast event to show success/error messages
+// Import toast event to display success/error notifications to the user
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
-// Component class definition
+// Main component class definition
 export default class PlaceOrder extends LightningElement {
+    _franchiseId;
 
-    // List of products (tracked so UI updates when data changes)
+    // List of products displayed in the product selection section
     @track products = [];
 
-    // Franchise options for dropdown
+    // Dropdown options for franchise accounts
     @track franchiseOptions = [];
-    // Distributor options for dropdown
+    
+    // Dropdown options for distributor accounts
     @track distributorOptions = [];
 
-    // Stores the selected franchise Id
+    // Stores the selected franchise Id from the dropdown
     selectedFranchise;
-    // Stores the selected distributor Id
-    selectedDistributor;
 
-    // 🔹 Automatically calls Apex method to get franchise accounts
+    @api
+    get franchiseId() { 
+        return this._franchiseId;
+    }
+    set franchiseId(value) {
+        this._franchiseId = value;
+        if (value) {
+            this.selectedFranchise = value;
+        }
+    }
+    
+    // Stores the selected distributor Id from the dropdown
+    selectedDistributor;
+    
+    // Array of applicable discount schemes for the current order
+    @track availableSchemes = [];
+    
+    // Stores the currently selected scheme Id for applying discounts
+    selectedSchemeId = null;
+
+    // Wire adapter to automatically fetch franchise accounts from Salesforce
     @wire(getFranchiseAccounts)
     wiredFranchises({ data, error }) {
         if (data) {
@@ -34,12 +55,15 @@ export default class PlaceOrder extends LightningElement {
                 label: acc.Name,
                 value: acc.Id
             }));
+            if (this.franchiseId) {
+                this.selectedFranchise = this.franchiseId;
+            }
         } else if (error) {
             this.showToast('Error', 'Unable to load Franchise accounts', 'error');
         }
     }
 
-    // 🔹 Automatically calls Apex method to get distributor accounts
+    // Wire adapter to automatically fetch distributor accounts from Salesforce
     @wire(getDistributorAccounts)
     wiredDistributors({ data, error }) {
         if (data) {
@@ -52,44 +76,45 @@ export default class PlaceOrder extends LightningElement {
         }
     }
 
-        // 🔹 Automatically calls Apex method to get products for selected distributor
-        @wire(getProductsByDistributor, { distributorId: '$selectedDistributor' })
-        wiredProducts({ data, error }) {
-            if (data) {
-                this.products = data.map(p => ({
-                    ...p,
-                    quantity: 0,
-                    unitPrice: p.unitPrice || 0,
-                    schemes: p.schemes || [],
-                    selectedSchemeId: null
-                }));
-            } else if (error) {
-                this.products = [];
-                this.showToast('Error', 'Unable to load products for distributor', 'error');
-            }
+    // Wire adapter to fetch products for the selected distributor
+    @wire(getProductsByDistributor, { distributorId: '$selectedDistributor' })
+    wiredProducts({ data, error }) {
+        if (data) {
+            this.products = data.map(p => ({
+                ...p,
+                quantity: 0,
+                unitPrice: p.unitPrice || 0
+            }));
+        } else if (error) {
+            this.products = [];
+            this.showToast('Error', 'Unable to load products for distributor', 'error');
         }
+    }
 
-    // 🔹 Called when user selects a franchise from dropdown
+    // Event handler for franchise dropdown selection change
     handleFranchiseChange(event) {
+        if (this.isFranchiseLocked) {
+            return;
+        }
         this.selectedFranchise = event.detail.value;
     }
 
-    // 🔹 Called when user selects a distributor from dropdown
+    // Event handler for distributor dropdown selection change
     handleDistributorChange(event) {
         this.selectedDistributor = event.detail.value;
     }
 
-    // 🔹 Called when + button is clicked
+    // Event handler for increasing product quantity (clicking + button)
     increaseQty(event) {
         this.updateQty(event.target.dataset.id, 1);
     }
 
-    // 🔹 Called when - button is clicked
+    // Event handler for decreasing product quantity (clicking - button)
     decreaseQty(event) {
         this.updateQty(event.target.dataset.id, -1);
     }
 
-    // 🔹 Common function to update product quantity
+    // Generic function to update product quantities
     updateQty(productId, change) {
         this.products = this.products.map(p => {
             if (p.productId === productId) {
@@ -101,9 +126,45 @@ export default class PlaceOrder extends LightningElement {
             }
             return p;
         });
+        this.updateAvailableSchemes();
     }
 
-    // 🔹 Called when user clicks Save Order button
+    // Update available discount schemes based on total quantity of selected products
+    updateAvailableSchemes() {
+        // Calculate total quantity of selected products
+        const totalQty = this.products.reduce((sum, p) => sum + (parseInt(p.quantity, 10) || 0), 0);
+        
+        if (totalQty === 0) {
+            this.availableSchemes = [];
+            this.selectedSchemeId = null;
+            return;
+        }
+
+        // Fetch schemes from backend based on threshold quantity
+        getSchemesByThresholdQuantity({ thresholdQuantity: totalQty })
+            .then((result) => {
+                this.availableSchemes = result.map(scheme => ({
+                    label: scheme.label + ' (' + scheme.discount + '% off)',
+                    value: scheme.value,
+                    discount: scheme.discount
+                }));
+                // Auto-select the first (best) scheme when available schemes change
+                if (this.availableSchemes.length > 0) {
+                    this.selectedSchemeId = this.availableSchemes[0].value;
+                } else {
+                    this.selectedSchemeId = null;
+                }
+                console.log('Available schemes:', this.availableSchemes);
+                console.log('Auto-selected scheme ID:', this.selectedSchemeId);
+            })
+            .catch((error) => {
+                console.error('Error fetching schemes:', error);
+                this.availableSchemes = [];
+                this.selectedSchemeId = null;
+            });
+    }
+
+    // Event handler for saving the order
     saveOrder() {
         if (!this.selectedFranchise) {
             this.showToast('Error', 'Please select a franchise', 'error');
@@ -117,8 +178,7 @@ export default class PlaceOrder extends LightningElement {
                 productName: p.productName || '',
                 imageUrl: p.imageUrl || '',
                 quantity: parseInt(p.quantity, 10) || 0,
-                unitPrice: p.unitPrice || 0,
-                selectedSchemeId: p.selectedSchemeId ? String(p.selectedSchemeId) : null
+                unitPrice: p.unitPrice || 0
             }));
 
         if (selectedItems.length === 0) {
@@ -136,7 +196,8 @@ export default class PlaceOrder extends LightningElement {
         placeOrder({
             franchiseId: this.selectedFranchise,
             distributorId: this.selectedDistributor,
-            selectedProducts: selectedItems
+            selectedProducts: selectedItems,
+            selectedSchemeId: this.selectedSchemeId ? String(this.selectedSchemeId) : null
         })
         .then((result) => {
             this.showToast(
@@ -148,8 +209,10 @@ export default class PlaceOrder extends LightningElement {
                 ...p,
                 quantity: 0
             }));
-            this.selectedFranchise = undefined;
+            this.selectedFranchise = this.franchiseId || undefined;
             this.selectedDistributor = undefined;
+            this.availableSchemes = [];
+            this.selectedSchemeId = null;
         })
         .catch(error => {
             const errorMsg = error.body?.message || error.message || 'An error occurred while creating the order';
@@ -158,14 +221,13 @@ export default class PlaceOrder extends LightningElement {
         });
     }
 
-    // 🔹 Reusable function to show toast messages (works on desktop & mobile)
+    // Reusable helper method to display toast notifications to the user
     showToast(title, message, variant) {
         this.dispatchEvent(
             new ShowToastEvent({
                 title: title,
                 message: message,
                 variant: variant,
-                //mode: 'sticky', // keeps toast visible until dismissed (good for mobile)
                 duration: variant === 'success' ? 5000 : 10000
             })
         );
@@ -178,31 +240,31 @@ export default class PlaceOrder extends LightningElement {
             .map(p => {
                 const qty = parseInt(p.quantity, 10) || 0;
                 const unit = parseFloat(p.unitPrice) || 0;
-                // find selected scheme to compute discount
                 let discount = 0;
-                let schemes = p.schemes || [];
-                const sel = schemes.find(s => s.value === p.selectedSchemeId);
-                if (sel && sel.discount) {
-                    discount = parseFloat(sel.discount) || 0;
+                let discountAmount = 0;
+                let discountedTotal = qty * unit;
+                // If scheme selected, apply discount
+                if (this.selectedSchemeId && this.availableSchemes.length) {
+                    const sel = this.availableSchemes.find(s => s.value === this.selectedSchemeId);
+                    if (sel && sel.discount) {
+                        discount = parseFloat(sel.discount) || 0;
+                        discountAmount = qty * unit * (discount / 100);
+                        discountedTotal = qty * unit - discountAmount;
+                    }
                 }
-                const subtotal = qty * unit;
-                const discountAmount = subtotal * (discount / 100);
-                const discountedTotal = subtotal - discountAmount;
                 return {
                     productId: p.productId,
                     productName: p.productName,
                     quantity: qty,
                     unitPrice: unit,
                     unitPriceDisplay: unit.toFixed(2),
-                    lineTotal: subtotal,
-                    lineTotalDisplay: subtotal.toFixed(2),
+                    lineTotal: qty * unit,
+                    lineTotalDisplay: (qty * unit).toFixed(2),
                     discount: discount,
                     discountAmount: discountAmount,
                     discountAmountDisplay: discountAmount.toFixed(2),
                     discountedTotal: discountedTotal,
-                    discountedTotalDisplay: discountedTotal.toFixed(2),
-                    schemes: schemes,
-                    selectedSchemeId: p.selectedSchemeId
+                    discountedTotalDisplay: discountedTotal.toFixed(2)
                 };
             });
     }
@@ -222,18 +284,12 @@ export default class PlaceOrder extends LightningElement {
         return total.toFixed(2);
     }
 
-    // 🔹 Called when user changes scheme in the summary combobox
+    // Event handler for scheme selection in the summary section
     handleSummarySchemeChange(event) {
-        const productId = event.target.dataset.id;
-        const selectedSchemeId = event.detail.value;
-        this.products = this.products.map(p => {
-            if (p.productId === productId) {
-                return {
-                    ...p,
-                    selectedSchemeId
-                };
-            }
-            return p;
-        });
+        this.selectedSchemeId = event.detail.value;
+    }
+
+    get isFranchiseLocked() {
+        return !!this.franchiseId;
     }
 }

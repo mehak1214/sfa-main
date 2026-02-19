@@ -11,7 +11,8 @@
     <div class={cardClass}
          role="button"
          tabindex="0"
-         onclick={handleCardClick}>
+         onclick={handleCardClick}
+         onkeydown={handleCardKeydown}>
 
         <div class="card-body">
 
@@ -20,6 +21,7 @@
                         <strong class="outlet-name">{outletName}</strong>
                     </div>
                     <button class="map-circle-btn"
+                            type="button"
                             onclick={navigateToMap}
                             title="View Map">
                         <lightning-icon

@@ -184,6 +184,17 @@
         </values>
     </picklistValues>
     <picklistValues>
+        <picklist>OutletStatus__c</picklist>
+        <values>
+            <fullName>Active</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Inactive</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
         <picklist>Outlet_Priority__c</picklist>
         <values>
             <fullName>A</fullName>

@@ -5,11 +5,25 @@ import checkInVisit from '@salesforce/apex/VisitController.checkInVisit';
 import checkOutVisit from '@salesforce/apex/VisitController.checkOutVisit';
 import getVisitDetail from '@salesforce/apex/VisitController.getVisitDetail';
 import getTodayAttendance from '@salesforce/apex/VisitController.getTodayAttendance';
+import uploadVisitPhoto from '@salesforce/apex/VisitController.uploadVisitPhoto';
+import deleteVisitPhoto from '@salesforce/apex/VisitController.deleteVisitPhoto';
+import getVisitPhoto from '@salesforce/apex/VisitController.getVisitPhoto';
+import getOutletPhoto from '@salesforce/apex/VisitController.getOutletPhoto';
 
 export default class VisitDetail extends LightningElement {
     _visit;
     _visitId;
     recordId;
+    isLoading = false;
+    _hasVisitPhoto;
+    imageUrl;
+    selectedPhotoId;
+    outletPhotoUrl;
+    actionInFlight = false;
+    showOrderPanel = false;
+    // UI state for photo modal
+    isPhotoModalOpen = false;
+    recentUploadNames = [];
 
     @api
     get visit() {
@@ -63,6 +77,10 @@ export default class VisitDetail extends LightningElement {
         if (data) {
             this.visit = data;
             this.setIsTodayFromVisit(data);
+            // Check if there's a photo for this visit
+            this.checkForVisitPhoto();
+            // Load account/outlet photo
+            this.loadOutletPhoto();
             return;
         }
 
@@ -73,6 +91,45 @@ export default class VisitDetail extends LightningElement {
                 'error'
             );
         }
+    }
+
+    // Method to check if there's a photo for this visit
+    checkForVisitPhoto() {
+        if (this.recordId) {
+            getVisitPhoto({ visitId: this.recordId })
+                .then(result => {
+                    this.hasVisitPhoto = result !== null;
+                    if (result) {
+                        this.selectedPhotoId = result.Id;
+                        // Store the photo data for later use
+                        this.imageUrl = '/sfc/servlet.shepherd/version/download/' + this.selectedPhotoId;
+                    }
+                    
+                    this.dispatchEvent(new CustomEvent('refresh'));
+                })
+                .catch(() => {
+                    this.hasVisitPhoto = false;
+                });
+        }
+    }
+
+    // Fetch the latest photo attached to the outlet (Account) record
+    loadOutletPhoto() {
+        const accountId = this.visit?.ibfsa__Outlet1__c;
+        if (!accountId) {
+            this.outletPhotoUrl = null;
+            return;
+        }
+
+        getOutletPhoto({ accountId })
+            .then(result => {
+                this.outletPhotoUrl = result
+                    ? `/sfc/servlet.shepherd/version/download/${result.Id}`
+                    : null;
+            })
+            .catch(() => {
+                this.outletPhotoUrl = null;
+            });
     }
 
     setIsTodayFromVisit(visitRecord) {
@@ -89,15 +146,45 @@ export default class VisitDetail extends LightningElement {
     }
 
     get outletName() {
-        return this.visit?.ibfsa__Outlet__r?.Name || 'Unknown Outlet';
+        const account = this.visit?.ibfsa__Outlet1__r;
+        return account?.Name || 'Unknown Outlet';
     }
 
     get outletAddress() {
-        return this.visit?.ibfsa__Outlet__r?.ibfsa__Addresss__c || 'No Address Provided';
+        const account = this.visit?.ibfsa__Outlet1__r;
+        if (!account || !account.ShippingAddress) {
+            return 'No Address Provided';
+        }
+        
+        // Handle the case where ShippingAddress might be an object with address components
+        if (typeof account.ShippingAddress === 'object' && account.ShippingAddress !== null) {
+            const addr = account.ShippingAddress;
+            const addressParts = [];
+            
+            // Build address from components
+            if (addr.street) addressParts.push(addr.street);
+            if (addr.city) addressParts.push(addr.city);
+            if (addr.state) addressParts.push(addr.state);
+            if (addr.postalCode) addressParts.push(addr.postalCode);
+            if (addr.country) addressParts.push(addr.country);
+            
+            return addressParts.join(', ');
+        }
+        
+        // If it's already a string, return as-is
+        return account.ShippingAddress;
     }
 
     get visitStatus() {
         return this.visit?.ibfsa__Visit_Status__c || 'Unknown';
+    }
+
+    get normalizedStatus() {
+        return (this.visit?.ibfsa__Visit_Status__c || '').trim().toLowerCase();
+    }
+
+    get hasOutletPhoto() {
+        return !!this.outletPhotoUrl;
     }
 
     get statusKey() {
@@ -110,6 +197,18 @@ export default class VisitDetail extends LightningElement {
         return `status-badge ${this.statusKey}`;
     }
 
+    get checkInTime() {
+        return this.formatTime(this.visit?.ibfsa__Check_In_Time__c);
+    }
+
+    get checkOutTime() {
+        return this.formatTime(this.visit?.ibfsa__Check_Out_Time__c );
+    }
+
+    get duration() {
+        return this.visit?.ibfsa__Actual_Duration__c;
+    }
+
     get plannedStart() {
         return this.formatTime(this.visit?.ibfsa__Planned_Start_Time__c);
     }
@@ -118,45 +217,73 @@ export default class VisitDetail extends LightningElement {
         return this.formatTime(this.visit?.ibfsa__Planned_End_Time__c);
     }
 
+    get visitDateLabel() {
+        const value = this.visit?.ibfsa__Visit_Date__c;
+        if (!value) return '--';
+        try {
+            return new Date(value).toLocaleDateString([], { year: 'numeric', month: 'short', day: '2-digit' });
+        } catch {
+            return '--';
+        }
+    }
+
     get sequenceLabel() {
         const seq = this.visit?.ibfsa__Sequence__c;
-        return seq ? `#${seq}` : '—';
+        return seq ? `${seq}` : '--';
+    }
+
+    get hasVisitPhoto() {
+        return this._hasVisitPhoto || false;
+    }
+
+    set hasVisitPhoto(value) {
+        this._hasVisitPhoto = value;
     }
 
     get showCheckIn() {
+        const status = this.normalizedStatus;
         return this.dayStarted &&
             !this.dayEnded &&
-            this.isToday &&
-            this.visit?.ibfsa__Visit_Status__c === 'Approved';
+            (status === 'draft' || status === 'approved');
     }
 
     get showCheckOut() {
+        const status = this.normalizedStatus;
         return this.dayStarted &&
             !this.dayEnded &&
-            this.isToday &&
-            this.visit?.ibfsa__Visit_Status__c === 'In Progress';
+            status === 'in progress';
     }
 
     get mapDisabled() {
-        const outlet = this.visit?.ibfsa__Outlet__r;
-        return !(outlet?.ibfsa__Outlet_Location__Latitude__s && outlet?.ibfsa__Outlet_Location__Longitude__s);
+        const account = this.visit?.ibfsa__Outlet1__r;
+        const lat = account?.ibfsa__Outlet_Location__Latitude__s ?? account?.Outlet_Location__Latitude__s;
+        const lon = account?.ibfsa__Outlet_Location__Longitude__s ?? account?.Outlet_Location__Longitude__s;
+        return lat === null || lat === undefined || lon === null || lon === undefined;
+    }
+
+    get hasRecentUploads() {
+        return this.recentUploadNames.length > 0;
     }
 
     handleClose() {
-        if (this.pageVisitId) {
-            window.history.back();
-            return;
+        try {
+            if (window.history.length > 1) {
+                window.history.back();
+                return;
+            }
+        } catch (e) {
+            // no-op fallthrough to close event
         }
         this.dispatchEvent(new CustomEvent('close'));
     }
 
     navigateToMap(event) {
         event?.stopPropagation();
-        const outlet = this.visit?.ibfsa__Outlet__r;
-        const lat = outlet?.ibfsa__Outlet_Location__Latitude__s;
-        const lon = outlet?.ibfsa__Outlet_Location__Longitude__s;
+        const account = this.visit?.ibfsa__Outlet1__r;
+        const lat = account?.ibfsa__Outlet_Location__Latitude__s ?? account?.Outlet_Location__Latitude__s;
+        const lon = account?.ibfsa__Outlet_Location__Longitude__s ?? account?.Outlet_Location__Longitude__s;
 
-        if (!lat || !lon) {
+        if (lat === null || lat === undefined || lon === null || lon === undefined) {
             this.showToast('Location unavailable', 'Outlet location not available.', 'error');
             return;
         }
@@ -175,6 +302,21 @@ export default class VisitDetail extends LightningElement {
         this.performGeoAction(checkOutVisit);
     }
 
+    handleToggleOrderPanel() {
+        this.showOrderPanel = !this.showOrderPanel;
+    }
+
+    get orderToggleLabel() {
+        return this.showOrderPanel ? 'Hide Order' : 'Create Order';
+    }
+
+    handleVisitFileUploadFinished(event) {
+        const files = event.detail?.files || [];
+        this.recentUploadNames = files.map(file => file.name);
+        const count = files.length;
+        this.showToast('Upload complete', `${count} file(s) attached to this visit.`, 'success');
+    }
+
     performGeoAction(apexMethod) {
         if (!navigator?.geolocation) {
             this.showToast('Location unavailable', 'Geolocation is not supported.', 'error');
@@ -187,6 +329,8 @@ export default class VisitDetail extends LightningElement {
             return;
         }
 
+        this.actionInFlight = true;
+
         navigator.geolocation.getCurrentPosition(
             pos => {
                 apexMethod({
@@ -194,27 +338,32 @@ export default class VisitDetail extends LightningElement {
                     lat: pos.coords.latitude.toString(),
                     lon: pos.coords.longitude.toString()
                 })
-                .then(() => {
+                .then( () => {
                     this.dispatchEvent(new CustomEvent('refresh'));
-                    this.handleClose();
                     this.showToast('Success', 'Visit updated successfully.', 'success');
                 })
                 .catch(err => {
                     this.showToast('Action failed', err?.body?.message || 'Please try again.', 'error');
+                })
+                .finally(() => {
+                    this.actionInFlight = false;
                 });
             },
-            () => this.showToast('Location required', 'Please enable location permission.', 'error'),
+            () => {
+                this.actionInFlight = false;
+                this.showToast('Location required', 'Please enable location permission.', 'error');
+            },
             { enableHighAccuracy: true }
         );
     }
 
     formatTime(value) {
-        if (!value) return '—';
+        if (!value) return '--';
         try {
             const date = new Date(value);
             return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         } catch {
-            return '—';
+            return '--';
         }
     }
 
@@ -222,8 +371,181 @@ export default class VisitDetail extends LightningElement {
         this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
     }
 
-    handleActivityClick(event) {
-        const action = event?.currentTarget?.dataset?.action || 'Activity';
-        this.showToast(action, 'This action is not configured yet.', 'info');
+    // Modal handlers
+    handleOpenPhotoModal = () => {
+        // Only open if we actually have a photo URL/id
+        if (this.hasVisitPhoto && this.imageUrl) {
+            this.isPhotoModalOpen = true;
+        } else {
+            this.showToast('No photo', 'No visit photo available to view.', 'info');
+        }
+    };
+
+    handleClosePhotoModal = () => {
+        this.isPhotoModalOpen = false;
+    };
+
+    // Delete the visit photo
+    handleDeletePhoto = () => {
+        // Use the selectedPhotoId that was already retrieved
+        if (this.selectedPhotoId) {
+            this.isLoading = true;
+            deleteVisitPhoto({ contentVersionId: this.selectedPhotoId })
+                .then(() => {
+                    this.showToast('Success', 'Photo deleted successfully.', 'success');
+                    this.hasVisitPhoto = false;
+                    this.imageUrl = undefined;
+                    this.isPhotoModalOpen = false;
+                    this.isLoading = false;
+                    // Refresh the page to show updated state
+                    this.dispatchEvent(new CustomEvent('refresh'));
+                })
+                .catch(() => {
+                    this.showToast('Error', 'Failed to delete photo.', 'error');
+                    this.isLoading = false;
+                });
+        } else {
+            this.showToast('Error', 'No photo found to delete.', 'error');
+        }
+    };
+
+    // Prompt for image capture and upload to Salesforce as ContentVersion linked to Visit__c
+    handleTakePhoto = () => {
+        try {
+            // Create a hidden file input on the fly to trigger camera on mobile
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            // capture attribute hints using back-facing camera on supported devices
+            input.setAttribute('capture', 'environment');
+
+            input.onchange = async () => {
+                const file = input.files && input.files[0];
+                if (!file) return;
+ 
+                const visitId = this.recordId || this.visit?.Id;
+                if (!visitId) {
+                    this.showToast('Visit not found', 'Missing visit id.', 'error');
+                    return;
+                }
+
+                try {
+                    // Resize image if needed to be under 3MB
+                    const resizedFile = await this.resizeImageIfNeeded(file);
+                    
+                    // Read file as base64 (strip data URL prefix afterwards)
+                    const base64 = await this.readFileAsBase64(resizedFile);
+                    const base64Data = base64.substring(base64.indexOf(',') + 1);
+
+                    this.isLoading = true;
+
+                const result = await uploadVisitPhoto({
+                    visitId,
+                    base64Data,
+                    contentType: resizedFile.type || file.type || 'image/jpeg'
+                });
+
+                if (result) {
+                    this.selectedPhotoId = result;
+                    this.hasVisitPhoto = true;
+                    // Update the image URL to reflect the newly uploaded photo
+                    const timestamp = new Date().getTime();
+                    this.imageUrl = `/sfc/servlet.shepherd/version/download/${this.selectedPhotoId}?v=${timestamp}`;
+                    // Ensure modal is closed after upload (user can open to view)
+                    this.isPhotoModalOpen = false;
+                }
+
+                this.showToast('Photo uploaded', 'Image attached to visit.', 'success');
+                this.isLoading = false;
+                // Let parent refresh data if needed
+                this.dispatchEvent(new CustomEvent('refresh'));
+                //this.checkForVisitPhoto();
+                } catch (err) {
+                    const msg = err?.body?.message || err?.message || 'Upload failed. Please try again.';
+                    const fileSize = file.size / 1024 / 1024;
+                    // this.showToast('Upload error', msg, 'error');
+                    this.dispatchEvent(new ShowToastEvent({ title: 'Upload error (File size: ' + fileSize.toFixed(2) + 'MB)',
+                                                    message: msg,
+                                                    variant: 'error',
+                                                    mode: 'sticky' }));
+                    this.isLoading = false;
+                }
+            };
+
+            // Trigger the chooser/camera
+            input.click();
+        } catch {
+            this.showToast('Camera error', 'Unable to start camera prompt.', 'error');
+        }
+    };
+
+    // Resize image to be less than 3MB if needed
+    resizeImageIfNeeded = (file) => {
+        return new Promise((resolve, reject) => {
+            if (file.size <= 3 * 1024 * 1024) {
+                resolve(file);
+                return;
+            }
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            const objectUrl = URL.createObjectURL(file);
+
+            img.onerror = () => {
+                URL.revokeObjectURL(objectUrl);
+                reject(new Error('Failed to load image for resizing'));
+            };
+
+            img.onload = () => {
+                URL.revokeObjectURL(objectUrl);
+                let width = img.width;
+                let height = img.height;
+                let quality = 0.9;
+
+                const resize = () => {
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob((blob) => {
+                        if (!blob) {
+                            reject(new Error('Failed to resize image'));
+                            return;
+                        }
+
+                        if (blob.size <= 3 * 1024 * 1024) {
+                            const resizedFile = new File([blob], file.name, { type: file.type });
+                            resolve(resizedFile);
+                            return;
+                        }
+
+                        quality -= 0.05;
+                        if (quality <= 0.1) {
+                            resolve(file);
+                            return;
+                        }
+
+                        width = Math.floor(width * 0.9);
+                        height = Math.floor(height * 0.9);
+                        resize();
+                    }, file.type, quality);
+                };
+
+                resize();
+            };
+
+            img.src = objectUrl;
+        });
+    };
+
+    // Utility: read a File as data URL (base64)
+    readFileAsBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsDataURL(file);
+        });
     }
 }

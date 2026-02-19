@@ -20,10 +20,7 @@ public with sharing class DistributorInventoryService {
             // Existing Account updated to Dealer / Distributor
             if (isUpdate && oldMap != null) {
                 Account oldAcc = oldMap.get(acc.Id);
-                if (
-                    !isDealerOrDistributor(oldAcc) &&
-                    isDealerOrDistributor(acc)
-                ) {
+                if (!isDealerOrDistributor(oldAcc) && isDealerOrDistributor(acc)) {
                     eligibleAccountIds.add(acc.Id);
                 }
             }
@@ -64,7 +61,7 @@ public with sharing class DistributorInventoryService {
 
         insert inventoriesToInsert;
 
-        // STEP 4: Map Account → Inventory
+        // STEP 4: Map Account to Inventory
         Map<Id, Id> accountToInventoryId = new Map<Id, Id>();
         for (ibfsa__Inventory__c inv : inventoriesToInsert) {
             accountToInventoryId.put(inv.ibfsa__Dealer__c, inv.Id);
@@ -74,7 +71,7 @@ public with sharing class DistributorInventoryService {
         List<Product2> products = [
             SELECT Id
             FROM Product2
-            WHERE IsActive = true and ibfsa__Is_Vashi_Product__c = true
+            WHERE IsActive = true AND ibfsa__Is_Vashi_Product__c = true
         ];
 
         // STEP 6: Create Inventory Items
@@ -88,10 +85,7 @@ public with sharing class DistributorInventoryService {
                 inventoryItems.add(new ibfsa__Inventory_Item__c(
                     ibfsa__Inventory__c = inventoryId,
                     ibfsa__Product__c = prod.Id,
-                    //Opening_Quantity__c = 2000,
                     ibfsa__AvailableStock__c = 2000,
-                   // Reserved_Quantity__c = 0,
-                    //Issued_Quantity__c = 0,
                     ibfsa__MinimumThresholdQuantity__c = 1000
                 ));
             }
@@ -101,21 +95,12 @@ public with sharing class DistributorInventoryService {
             insert inventoryItems;
         }
     }
-/*
-    // Utility method
+
     private static Boolean isDealerOrDistributor(Account acc) {
-        return acc.RecordType != null &&
-               (acc.RecordType.DeveloperName == 'Dealer_Distributor');
+        return acc.RecordTypeId ==
+            Schema.SObjectType.Account
+                .getRecordTypeInfosByDeveloperName()
+                .get('Dealer_Distributor')
+                .getRecordTypeId();
     }
-*/
-    private static Boolean isDealerOrDistributor(Account acc) {
-    return acc.RecordTypeId ==
-        Schema.SObjectType.Account
-            .getRecordTypeInfosByDeveloperName()
-            .get('Dealer_Distributor')
-            .getRecordTypeId();
-}
-    
-
-
 }

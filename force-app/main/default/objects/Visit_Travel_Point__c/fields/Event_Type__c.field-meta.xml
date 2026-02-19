@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Event_Type__c</fullName>
+    <label>Event Type</label>
+    <required>true</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>START_DAY</fullName>
+                <default>false</default>
+                <label>Start Day</label>
+            </value>
+            <value>
+                <fullName>CHECK_IN</fullName>
+                <default>false</default>
+                <label>Check In</label>
+            </value>
+            <value>
+                <fullName>CHECK_OUT</fullName>
+                <default>false</default>
+                <label>Check Out</label>
+            </value>
+            <value>
+                <fullName>END_DAY</fullName>
+                <default>false</default>
+                <label>End Day</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

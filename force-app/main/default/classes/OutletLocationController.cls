@@ -24,7 +24,6 @@ public with sharing class OutletLocationController {
                 }
             }
         } catch (Exception e) {
-            System.debug('Reverse Geocode Error: ' + e.getMessage());
         }
         return address;
     }
@@ -42,19 +41,21 @@ public with sharing class OutletLocationController {
             throw new AuraHandledException('Outlet Id and coordinates required');
         }
 
-        Outlet__c outlet = [
+        Account outlet = [
             SELECT Id
-            FROM Outlet__c
+            FROM Account
             WHERE Id = :outletId
             LIMIT 1
         ];
 
         //  Store in GEOLOCATION FIELD
-        outlet.ibfsa__Outlet_Location__Latitude__s  = latitude;
+        outlet.ibfsa__Outlet_Location__Latitude__s = latitude;
         outlet.ibfsa__Outlet_Location__Longitude__s = longitude;
 
         //  Store formatted address (TEXT FIELD)
-        outlet.ibfsa__Addresss__c = reverseGeocode(latitude, longitude);
+       // outlet.ibfsa__Addresss__c = reverseGeocode(latitude, longitude);
+        outlet.ShippingStreet = reverseGeocode(latitude, longitude);
+
 
         //  SAFE UPDATE (prevents duplicate-rule crash)
         Database.update(outlet, false);

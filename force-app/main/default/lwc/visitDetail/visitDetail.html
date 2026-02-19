@@ -1,67 +1,146 @@
 <template>
     <section class="page" role="dialog" aria-modal="true">
+
+        <template if:true={isLoading}>
+            <lightning-spinner alternative-text="Loading" size="large" variant="brand"></lightning-spinner>
+        </template>
+
         <div class="sheet">
-            <div class="sheet-header">
-                <button class="back-btn" onclick={handleClose} type="button" title="Back">
-                    <lightning-icon icon-name="utility:chevronleft" size="x-small"></lightning-icon>
-                    <span>Back</span>
-                </button>
-                <span class={statusBadgeClass}>{visitStatus}</span>
-            </div>
-
-            <div class="header-left">
-                <h3 class="title">{outletName}</h3>
-                <p class="address">{outletAddress}</p>
-            </div>
-
-            <div class="card">
-                <div class="card-title">Visit Info</div>
-                <div class="info-grid">
-                    <div class="info-item">
-                        <span class="label">Planned Start</span>
-                        <span class="value">{plannedStart}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="label">Planned End</span>
-                        <span class="value">{plannedEnd}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="label">Sequence</span>
-                        <span class="value">{sequenceLabel}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-title">Actions</div>
-                <div class="actions">
-                    <button class="btn secondary" onclick={navigateToMap} type="button" disabled={mapDisabled}>
-                        Open Map
+            <!-- Hero / Header -->
+            <div class="hero">
+                <div class="hero-top">
+                    <button class="icon-pill" onclick={handleClose} type="button" title="Back">
+                        <lightning-icon icon-name="utility:chevronleft" size="x-small"></lightning-icon>
+                        <span>Back</span>
                     </button>
+                    <div class="hero-badges">
+                        <span class="badge-label">Visit Status</span>
+                        <span class={statusBadgeClass}>{visitStatus}</span>
+                    </div>
+                </div>
 
-                    <template if:true={showCheckIn}>
-                        <button class="btn primary" onclick={handleCheckIn} type="button">
-                            Check In
-                        </button>
-                    </template>
+                <div class="hero-body">
+                    <div class="hero-text">
+                        <p class="eyebrow">Visit #{sequenceLabel}</p>
+                        <h2 class="title">{outletName}</h2>
+                        <p class="address">{outletAddress}</p>
 
-                    <template if:true={showCheckOut}>
-                        <button class="btn danger" onclick={handleCheckOut} type="button">
-                            Check Out
-                        </button>
+                        <div class="hero-actions">
+                            <button class="map-mini-btn" onclick={navigateToMap} type="button" disabled={mapDisabled} title="Directions">
+                                <lightning-icon icon-name="utility:location" size="x-small"></lightning-icon>
+                                <span class="map-mini-label">Directions</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <template if:true={hasOutletPhoto}>
+                        <div class="hero-photo">
+                            <img src={outletPhotoUrl} alt="Outlet photo" />
+                        </div>
                     </template>
                 </div>
             </div>
 
-            <div class="card">
-                <div class="card-title">Activities</div>
-                <div class="activity-row">
-                    <button class="chip" type="button" data-action="Take Order" onclick={handleActivityClick}>Take Order</button>
-                    <button class="chip" type="button" data-action="Add Note" onclick={handleActivityClick}>Add Note</button>
-                    <button class="chip" type="button" data-action="Log Issue" onclick={handleActivityClick}>Log Issue</button>
+            <div class="content">
+                <!-- Visit Timing -->
+                <div class="card">
+                    <div class="card-head">
+                        <span class="card-title">Timing</span>
+                    </div>
+                    <div class="detail-grid">
+                        <div class="detail">
+                            <p class="label">Planned Window</p>
+                            <p class="value">{plannedStart} - {plannedEnd}</p>
+                        </div>
+                        <div class="detail">
+                            <p class="label">Check-in / out</p>
+                            <p class="value">{checkInTime} - {checkOutTime}</p>
+                        </div>
+                        <div class="detail">
+                            <p class="label">Duration</p>
+                            <p class="value">{duration}</p>
+                        </div>
+                    </div>
                 </div>
-                <p class="section-sub">These can be wired to actions later.</p>
+
+                <!-- Actions -->
+                <div class="card">
+                    <div class="card-head">
+                        <span class="card-title">Actions</span>
+                    </div>
+                    <div class="action-grid">
+                        <template if:true={actionInFlight}>
+                            <div class="action-helper">Grabbing your GPS location...</div>
+                        </template>
+                        <template if:true={showCheckIn}>
+                            <button class="btn success action-main" onclick={handleCheckIn} type="button" disabled={actionInFlight}>
+                                <lightning-icon icon-name="utility:checkin" size="x-small"></lightning-icon>
+                                <span>Check In</span>
+                            </button>
+                        </template>
+
+                        <template if:true={showCheckOut}>
+                            <button class="btn danger action-main" onclick={handleCheckOut} type="button" disabled={actionInFlight}>
+                                <lightning-icon icon-name="utility:logout" size="x-small"></lightning-icon>
+                                <span>Check Out</span>
+                            </button>
+                        </template>
+
+                        <template if:true={hasVisitPhoto}>
+                            <button class="btn secondary action-photo" onclick={handleOpenPhotoModal} type="button" title="Preview Visit Photo">
+                                <lightning-icon icon-name="utility:image" size="x-small"></lightning-icon>
+                                <span>Preview Visit Photo</span>
+                            </button>
+                        </template>
+
+                        <template if:false={hasVisitPhoto}>
+                            <button class="btn secondary action-photo" onclick={handleTakePhoto} type="button">
+                                <lightning-icon icon-name="utility:camera" size="x-small"></lightning-icon>
+                                <span>Take Visit Photo</span>
+                            </button>
+                        </template>
+
+                        <button class="btn primary action-order" onclick={handleToggleOrderPanel} type="button">
+                            <lightning-icon icon-name="utility:cart" size="x-small"></lightning-icon>
+                            <span>{orderToggleLabel}</span>
+                        </button>
+
+                    </div>
+                </div>
+
+                <template if:true={showOrderPanel}>
+                    <div class="card order-card">
+                        <div class="card-head">
+                            <span class="card-title">Order</span>
+                        </div>
+                        <c-place-order></c-place-order>
+                    </div>
+                </template>
+
             </div>
         </div>
+
+        <!-- Photo modal -->
+        <template if:true={isPhotoModalOpen}>
+            <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="visitPhotoModalHeading" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <div class="slds-modal__content slds-p-around_medium" id="visitPhotoModalContent">
+                        <template if:true={hasVisitPhoto}>
+                            <img src={imageUrl} alt="Visit Photo" class="photo-preview" />
+                        </template>
+                        <template if:false={hasVisitPhoto}>
+                            <p>No photo available.</p>
+                        </template>
+                    </div>
+                    <footer class="slds-modal__footer">
+                        <button class="btn danger" onclick={handleDeletePhoto} type="button">
+                            Delete Photo
+                        </button>
+                        <button class="btn secondary" onclick={handleClosePhotoModal} type="button">Close</button>
+                    </footer>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open"></div>
+        </template>
     </section>
 </template>

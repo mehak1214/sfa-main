@@ -6,6 +6,7 @@
                 label="Select Franchise"
                 value={selectedFranchise}
                 options={franchiseOptions}
+                disabled={isFranchiseLocked}
                 onchange={handleFranchiseChange}>
             </lightning-combobox>
         </div>
@@ -73,31 +74,22 @@
                                     <div class="col-value">{item.productName}</div>
                                 </div>
                                 <div class="summary-col">
-                                    <div class="col-label">Scheme</div>
-                                    <div class="col-value">
-                                        <template if:true={item.schemes}>
-                                            <template if:true={item.schemes.length}>
-                                                <lightning-combobox
-                                                    data-id={item.productId}
-                                                    name="summaryScheme"
-                                                    value={item.selectedSchemeId}
-                                                    options={item.schemes}
-                                                    placeholder="Select scheme"
-                                                    onchange={handleSummarySchemeChange}>
-                                                </lightning-combobox>
-                                            </template>
-                                            <template if:false={item.schemes.length}>
-                                                <span>No schemes</span>
-                                            </template>
-                                        </template>
-                                        <template if:false={item.schemes}>
-                                            <span>No schemes</span>
-                                        </template>
-                                    </div>
-                                </div>
-                                <div class="summary-col">
                                     <div class="col-label">Qty</div>
-                                    <div class="col-value">{item.quantity}</div>
+                                    <div class="col-value">
+                                        <lightning-button-icon
+                                            icon-name="utility:dash"
+                                            data-id={item.productId}
+                                            onclick={decreaseQty}>
+                                        </lightning-button-icon>
+                                        <span class="slds-m-horizontal_small slds-text-heading_medium">
+                                            {item.quantity}
+                                        </span>
+                                        <lightning-button-icon
+                                            icon-name="utility:add"
+                                            data-id={item.productId}
+                                            onclick={increaseQty}>
+                                        </lightning-button-icon>
+                                    </div>
                                 </div>
                                 <div class="summary-col">
                                     <div class="col-label">Unit Price</div>
@@ -119,6 +111,23 @@
                         </div>
                     </template>
 
+                </div>
+                
+                <!-- Scheme selector below all products -->
+                <div class="slds-m-top_medium slds-border_top slds-p-top_medium">
+                    <h4 class="slds-text-heading_small slds-m-bottom_small">Apply Scheme</h4>
+                    <template if:true={availableSchemes.length}>
+                        <lightning-combobox
+                            name="summaryScheme"
+                            value={selectedSchemeId}
+                            options={availableSchemes}
+                            placeholder="Select scheme"
+                            onchange={handleSummarySchemeChange}>
+                        </lightning-combobox>
+                    </template>
+                    <template if:false={availableSchemes.length}>
+                        <span>No schemes available</span>
+                    </template>
                 </div>
             </div>
         </template>
