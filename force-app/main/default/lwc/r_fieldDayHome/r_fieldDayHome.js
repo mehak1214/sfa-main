@@ -52,6 +52,8 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
     timelineLoading = false;
     travelSummary = {};
     showSchemesModal = false;
+    showNewProductsModal = false;
+    showBeatPlanWeeklyModal = false;
     travelLoading = false;
     travelError = null;
     dashboardSnapshot = {};
@@ -60,6 +62,7 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
     dailyVisits = [];
     activeMainScreen = 'dashboard'; // dashboard | field
     stayOnFieldNoBeat = false;
+    activeProductSchemeTab = 'products'; // products | schemes
 
     
     manualExpenseType = 'Travel';
@@ -102,7 +105,11 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
 
     refreshDayViews() {
         // Full refresh used after start/end day actions.
+        // Defer attendance refresh slightly to avoid racing with server/LDS cache.
+        setTimeout(() => {
         this.loadAttendance();
+        }, 500);
+
         this.loadTravelSummary();
         this.loadDashboardSnapshot();
         this.fetchDayTimelineData();
@@ -132,8 +139,19 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
     loadAttendance() {
         getTodayAttendance()
             .then(att => {
-                this.dayStarted = !!att;
-                this.dayEnded = !!(att?.End_Time__c || att?.ibfsa__End_Time__c);
+                const serverStarted = !!att;
+                const serverEnded = !!(att?.End_Time__c || att?.ibfsa__End_Time__c);
+
+                // Only advance state; never regress due to stale reads.
+                if (serverStarted && !this.dayStarted) {
+                    this.dayStarted = true;
+                }
+                if (serverEnded && !this.dayEnded) {
+                    this.dayEnded = true;
+                }
+            })
+            .catch(() => {
+                // Keep optimistic UI on error
             });
     }
 
@@ -264,12 +282,34 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
         }
     }
 
+    handleTabChange(event) {
+        const nextTab = event?.currentTarget?.dataset?.tab;
+        if (!nextTab || nextTab === this.activeProductSchemeTab) return;
+        this.activeProductSchemeTab = nextTab;
+    }
+
+    handleOpenNewProductsModal() {
+        this.showNewProductsModal = true;
+    }
+
+    handleCloseNewProductsModal() {
+        this.showNewProductsModal = false;
+    }
+
     handleOpenSchemesModal() {
         this.showSchemesModal = true;
     }
 
     handleCloseSchemesModal() {
         this.showSchemesModal = false;
+    }
+
+    handleOpenBeatPlanWeekly() {
+        this.showBeatPlanWeeklyModal = true;
+    }
+
+    handleCloseBeatPlanWeekly() {
+        this.showBeatPlanWeeklyModal = false;
     }
 
     handleBeatToggle() {
@@ -343,6 +383,14 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
             () => {
                 this.dayStarted = true;
                 this.dayEnded = false;
+
+                // Dispatch a component-scoped custom event so this component can react if needed.
+                // Consumers outside this component are not required for this approach.
+                this.dispatchEvent(new CustomEvent('fielddaystatuschange', {
+                    detail: { action: 'start', dayStarted: true, dayEnded: false },
+                    bubbles: false,
+                    composed: false
+                }));
             },
             'Day started',
             'You are checked in for today.'
@@ -355,6 +403,13 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
             endDay,
             () => {
                 this.dayEnded = true;
+
+                // Dispatch a component-scoped custom event
+                this.dispatchEvent(new CustomEvent('fielddaystatuschange', {
+                    detail: { action: 'end', dayStarted: this.dayStarted, dayEnded: true },
+                    bubbles: false,
+                    composed: false
+                }));
             },
             'Day ended',
             'You are checked out for today.'
@@ -570,6 +625,22 @@ export default class r_fieldDayHome extends NavigationMixin(LightningElement) {
 
     get travelTabClass() {
         return `mode-btn${this.isTravelScreen ? ' active' : ''}`;
+    }
+
+    get isLatestProductsTab() {
+        return this.activeProductSchemeTab === 'products';
+    }
+
+    get isActiveSchemesTab() {
+        return this.activeProductSchemeTab === 'schemes';
+    }
+
+    get latestProductsTabClass() {
+        return `tab-btn${this.isLatestProductsTab ? ' active' : ''}`;
+    }
+
+    get schemesTabClass() {
+        return `tab-btn${this.isActiveSchemesTab ? ' active' : ''}`;
     }
 
     get todayDistanceKmLabel() {

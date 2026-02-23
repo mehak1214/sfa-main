@@ -77,10 +77,15 @@
                         <span>Pending Collection</span>
                         <strong>{pendingCollectionLabel}</strong>
                     </article>
-                    <article>
+
+                    <article onclick={handleOpenBeatPlanWeekly}>
+                        <span>Weekly Planner</span>
+                        
+                    </article>
+                    <!--<article>
                         <span>Schemes</span>
                         <strong>{activeSchemeCountLabel}</strong>
-                    </article>
+                    </article>-->
                 </div>
 
                 <div class="sheet-divider"></div>
@@ -96,20 +101,15 @@
                     </div>
                 </div>
 
-                <div class="banner-line">
-                    <span class="banner-tag">NEW</span>
-                    <div>
-                        <h3>{featuredProductName}</h3>
-                        <p>{featuredProductCategory} - demo product banner</p>
-                    </div>
-                </div>
-
-                <div class="banner-line scheme" onclick={handleOpenSchemesModal}>
-                    <span class="banner-tag">SCHEME</span>
-                    <div>
-                        <h3>{featuredSchemeTitle}</h3>
-                        <p>{featuredSchemeDetail}</p>
-                    </div>
+                <div class="product-scheme-card">
+                    <lightning-tabset variant="scoped">
+                        <lightning-tab label="Latest Products">
+                            <c-new-products-card-view></c-new-products-card-view>
+                        </lightning-tab>
+                        <lightning-tab label="Schemes">
+                            <c-active-schemes-card-view></c-active-schemes-card-view>
+                        </lightning-tab>
+                    </lightning-tabset>
                 </div>
             </section>
         </template>
@@ -193,13 +193,50 @@
             </template>
         </template>
 
-        <template if:true={showSchemesModal}>
+        <template if:true={showBeatPlanWeeklyModal}>
+            <section role="dialog" tabindex="-1" aria-modal="true" aria-label="Weekly Beat Plan" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <header class="slds-modal__header">
+                        <h2 class="slds-text-heading_medium">Weekly Beat Plan</h2>
+                        <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close dialog" onclick={handleCloseBeatPlanWeekly}>
+                            <lightning-icon icon-name="utility:close" size="small"></lightning-icon>
+                        </button>
+                    </header>
+                    <div class="slds-modal__content slds-p-around_medium">
+                        <c-beat-plan-weekly></c-beat-plan-weekly>
+                    </div>
+                    <footer class="slds-modal__footer">
+                        <lightning-button variant="neutral" label="Close" onclick={handleCloseBeatPlanWeekly}></lightning-button>
+                    </footer>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open" onclick={handleCloseBeatPlanWeekly}></div>
+        </template>
+
+        <!-- <template if:true={showNewProductsModal}>
+                    <section role="dialog" tabindex="-1" aria-modal="true" aria-label="View Schemes" class="slds-modal slds-fade-in-open">
+                        <div class="slds-modal__container">
+                            <header class="slds-modal__header">
+                                <h2 class="slds-text-heading_medium">New Products</h2>
+                            </header>
+                            <div class="slds-modal__content slds-p-around_medium">
+                                <c-new-products></c-new-products>
+                            </div>
+                            <footer class="slds-modal__footer">
+                                <lightning-button variant="neutral" label="Close" onclick={handleCloseNewProductsModal}></lightning-button>
+                            </footer>
+                        </div>
+                    </section>
+                    <div class="slds-backdrop slds-backdrop_open" onclick={handleCloseNewProductsModal}></div>
+        </template>  -->
+
+        <!-- <template if:true={showSchemesModal}>
                     <section role="dialog" tabindex="-1" aria-modal="true" aria-label="View Schemes" class="slds-modal slds-fade-in-open">
                         <div class="slds-modal__container">
                             <header class="slds-modal__header">
                                 <h2 class="slds-text-heading_medium">Available Schemes</h2>
                             </header>
-                            <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                            <div class="slds-modal__content slds-p-around_medium">
                                 <c-view-schemes></c-view-schemes>
                             </div>
                             <footer class="slds-modal__footer">
@@ -208,6 +245,6 @@
                         </div>
                     </section>
                     <div class="slds-backdrop slds-backdrop_open" onclick={handleCloseSchemesModal}></div>
-        </template> 
+        </template>  -->
     </div>
 </template>

@@ -1,0 +1,144 @@
+<template>
+    <lightning-card  >
+    
+
+        <!-- No Schemes Message -->
+        <template if:true={noSchemesToDisplay}>
+            <div class="slds-p-vertical_xx-large slds-text-align_center">
+                <lightning-icon icon-name="utility:info" size="large" class="slds-icon-text-default slds-m-bottom_medium"></lightning-icon>
+                <p class="slds-text-heading_small slds-text-color_weak">No schemes available at this time.</p>
+            </div>
+        </template>
+
+        <!-- Schemes Grid View -->
+        <template if:true={hasSchemes}>
+            <div class="slds-p-around_large">
+                <div class="schemes-grid-container">
+                    <template for:each={topSchemes} for:item="scheme">
+                        <div key={scheme.schemeId} class="scheme-grid-item">
+                            <div class="scheme-card-wrapper" data-color={scheme.color} data-scheme-id={scheme.schemeId} onclick={handleSchemeClick}>
+                                <!-- Card Header with Title and Status Badge -->
+                                <div class="card-header-section">
+                                    <div class="header-title-area">
+                                        <h2 class="scheme-title">{scheme.schemeName}</h2>
+                                    </div>
+                                    <template if:true={scheme.isActive}>
+                                        <span class="status-badge status-active">Active</span>
+                                    </template>
+                                    <template if:false={scheme.isActive}>
+                                        <span class="status-badge status-inactive">Inactive</span>
+                                    </template>
+                                </div>
+
+                                <!-- Description Section -->
+                                <template if:true={scheme.description}>
+                                    <div class="description-section">
+                                        <p class="description-text">{scheme.description}</p>
+                                    </div>
+                                </template>
+
+                                <!-- Details Grid -->
+                                <div class="details-grid">
+                                    <div class="detail-item">
+                                        <span class="detail-label">DISCOUNT:</span>
+                                        <span class="detail-value discount-value">{scheme.schemeValue}%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- More Schemes Button as Grid Item -->
+                    <template if:true={hasMoreSchemes}>
+                        <div class="scheme-grid-item">
+                            <button class="view-all-schemes-btn" onclick={handleViewAllSchemes}>
+                                {moreSchemesLabel}
+                            </button>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+
+        <!-- Error Message -->
+        <template if:true={errorMessage}>
+            <div class="slds-m-around_large">
+                <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">
+                    <span class="slds-assistive-text">Error</span>
+                    <lightning-icon icon-name="utility:error" size="small" class="slds-m-right_small"></lightning-icon>
+                    <span>{errorMessage}</span>
+                </div>
+            </div>
+        </template>
+
+        <!-- All Schemes Modal -->
+        <template if:true={isModalOpen}>
+            <section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open slds-modal_large">
+                <div class="slds-modal__container">
+                    <header class="slds-modal__header">
+                        <h2 class="slds-text-heading_medium">All Schemes</h2>
+                        <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={handleCloseModal}>
+                            <lightning-icon icon-name="utility:close" alternative-text="close" size="small"></lightning-icon>
+                            <span class="slds-assistive-text">Close</span>
+                        </button>
+                    </header>
+
+                    <div class="slds-modal__content slds-p-around_large">
+                        <template if:true={isDetailLoading}>
+                            <div class="slds-align_absolute-center slds-p-vertical_large">
+                                <lightning-spinner alternative-text="Loading all schemes" size="medium"></lightning-spinner>
+                            </div>
+                        </template>
+
+                        <template if:true={allSchemes}>
+                            <div class="schemes-list-container">
+                                <template for:each={allSchemes} for:item="scheme">
+                                    <div key={scheme.schemeId} class="modal-scheme-grid-item">
+                                        <div class="scheme-card-wrapper" data-color={scheme.color} data-scheme-id={scheme.schemeId} onclick={handleSchemeClick}>
+                                            <!-- Card Header with Title and Status Badge -->
+                                            <div class="card-header-section">
+                                                <div class="header-title-area">
+                                                    <h3 class="scheme-title">{scheme.schemeName}</h3>
+                                                </div>
+                                                <template if:true={scheme.isActive}>
+                                                    <span class="status-badge status-active">Active</span>
+                                                </template>
+                                                <template if:false={scheme.isActive}>
+                                                    <span class="status-badge status-inactive">Inactive</span>
+                                                </template>
+                                            </div>
+
+                                            <!-- Description Section -->
+                                            <template if:true={scheme.description}>
+                                                <div class="description-section">
+                                                    <p class="description-text">{scheme.description}</p>
+                                                </div>
+                                            </template>
+
+                                            <!-- Details Grid -->
+                                            <div class="details-grid">
+                                                <div class="detail-item">
+                                                    <span class="detail-label">DISCOUNT:</span>
+                                                    <span class="detail-value discount-value">{scheme.schemeValue}%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+
+                    <footer class="slds-modal__footer">
+                        <lightning-button 
+                            label="Close" 
+                            onclick={handleCloseModal}
+                            variant="neutral">
+                        </lightning-button>
+                    </footer>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open"></div>
+        </template>
+    </lightning-card>
+</template>

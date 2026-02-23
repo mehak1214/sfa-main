@@ -1,0 +1,220 @@
+.container {
+    padding: 1rem;
+}
+
+.main-card {
+    background-color: #ffffff;
+    border: 1px solid #e3e5e7;
+    border-radius: 0.25rem;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.cards-wrapper {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    align-items: stretch;
+}
+
+/* Mobile view - horizontal scrollable */
+@media (max-width: 768px) {
+    .cards-wrapper {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+    }
+
+    .scheme-card {
+        min-width: 150px;
+        width: 150px;
+        flex-shrink: 0;
+    }
+
+    .view-all-tile {
+        min-width: 150px;
+        width: 150px;
+        flex-shrink: 0;
+        min-height: auto;
+    }
+}
+
+.scheme-card {
+    border: 1px solid #e3e5e7;
+    border-radius: 0.25rem;
+    background-color: #f4f6f8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    min-height: 200px;
+    cursor: pointer;
+}
+
+.scheme-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    background-color: #f8f9fa;
+    transform: translateY(-2px);
+}
+
+.card-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    position: relative;
+}
+
+.scheme-info {
+    text-align: center;
+    width: 100%;
+}
+
+.scheme-name {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333333;
+    word-break: break-word;
+}
+
+.scheme-percent {
+    font-size: 1.75rem;
+    font-weight: bold;
+    color: #0070d2;
+    margin: 0.5rem 0;
+}
+
+.scheme-description {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.8125rem;
+    color: #666666;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.4;
+}
+
+.no-schemes {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #999999;
+    font-size: 0.875rem;
+    padding: 2rem 0;
+}
+
+.view-all-section {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e3e5e7;
+}
+
+.view-all-tile {
+    grid-column: auto;
+    border: none;
+    border-radius: 0;
+    background-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    min-height: auto;
+    padding: 0;
+}
+
+.view-all-tile:hover {
+    background-color: transparent;
+    border-color: transparent;
+}
+
+.view-all-button {
+    padding: 0.5rem 1rem;
+    background-color: #0070d2;
+    color: #ffffff;
+    border: none;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.view-all-button:hover {
+    background-color: #005aaf;
+    box-shadow: 0 2px 8px rgba(0, 112, 210, 0.3);
+}
+
+.view-all-button:active {
+    background-color: #004a90;
+}
+
+.modal-scheme-card {
+    border: 1px solid #e3e5e7;
+    border-radius: 0.25rem;
+    background-color: #f4f6f8;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    flex-direction: column;
+    text-align: center;
+}
+
+.modal-scheme-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    background-color: #f8f9fa;
+}
+
+.modal-scheme-card .card-content {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0;
+}
+
+.scheme-info-row {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    width: 100%;
+}
+
+.scheme-name-row {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #333333;
+}
+
+.scheme-description-row {
+    margin: 0;
+    font-size: 0.75rem;
+    color: #666666;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    line-height: 1.3;
+}
+
+.scheme-percent-row {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #0070d2;
+    white-space: nowrap;
+    margin-top: 0.5rem;
+}

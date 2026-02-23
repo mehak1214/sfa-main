@@ -1,6 +1,17 @@
 <template>
-    <lightning-card title="My Orders" icon-name="standard:orders">
-        <div class="slds-p-around_medium">
+    <section class="orders-page">
+        <div class="page-panel header-panel">
+            <h1 class="page-title">My Orders</h1>
+            <p class="page-subtitle">Track your recent orders and open details.</p>
+        </div>
+
+        <div class="page-panel content-panel">
+            <div class="orders-tabs" role="tablist" aria-label="Order Type Tabs">
+                <button class={allTabClass} data-tab="ALL" onclick={handleTabChange} type="button">All Orders</button>
+                <button class={sampleTabClass} data-tab="SAMPLE" onclick={handleTabChange} type="button">Sample Orders</button>
+                <button class={regularTabClass} data-tab="REGULAR" onclick={handleTabChange} type="button">Regular Orders</button>
+            </div>
+
             <!-- Loading Spinner -->
             <template if:true={isLoading}>
                 <div class="slds-align_absolute-center slds-m-vertical_large">
@@ -18,17 +29,34 @@
             <!-- Orders Card View -->
             <template if:true={hasOrders}>
                 <div class="orders-container">
-                    <template for:each={orders} for:item="order">
-                        <div key={order.orderId} class="order-card slds-box slds-m-bottom_medium">
+                    <template for:each={visibleOrders} for:item="order">
+                        <div key={order.orderId} class="order-card slds-m-bottom_medium">
                             <!-- Order Header with Order Number (Clickable) -->
-                            <div class="order-header slds-p-medium" onclick={handleCardClick} data-order-id={order.orderId}>
+                            <div class="order-header" onclick={handleCardClick} data-order-id={order.orderId}>
                                 <div class="header-content">
                                     <div class="order-number-container">
                                         <h2 class="order-number">Order #{order.orderNumber}</h2>
                                     </div>
-                                    <div class="order-amount-wrapper">
-                                        <span class="order-amount">Amount: {order.formattedAmount}</span>
-                                        <span class="order-date">Order Date: {order.formattedOrderDate}</span>
+                                    <div class="order-meta-line">
+                                        <span class="meta-field">
+                                            <lightning-icon icon-name="utility:currency_input" size="xx-small" class="meta-icon" alternative-text="Amount"></lightning-icon>
+                                            Amount: {order.formattedAmount}
+                                        </span>
+                                        <span class="meta-separator">|</span>
+                                        <span class="meta-field">
+                                            <lightning-icon icon-name="utility:event" size="xx-small" class="meta-icon" alternative-text="Order Date"></lightning-icon>
+                                            Order Date: {order.formattedOrderDate}
+                                        </span>
+                                        <span class="meta-separator">|</span>
+                                        <span class="meta-field">
+                                            <lightning-icon icon-name="utility:layers" size="xx-small" class="meta-icon" alternative-text="Type"></lightning-icon>
+                                            Type: {order.orderType}
+                                        </span>
+                                        <span class="meta-separator">|</span>
+                                        <span class="meta-field">
+                                            <lightning-icon icon-name="utility:number_input" size="xx-small" class="meta-icon" alternative-text="Items"></lightning-icon>
+                                            Items: {order.productCount}
+                                        </span>
                                     </div>
                                 </div>
                                 <div class="status-wrapper">
@@ -48,6 +76,71 @@
                     <p class="slds-m-0">{errorMessage}</p>
                 </div>
             </template>
+
+            <!-- Order Detail Modal -->
+            <template if:true={isDetailModalOpen}>
+                <section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open">
+                    <div class="slds-modal__container">
+                        <header class="slds-modal__header detail-modal-header">
+                            <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                                    title="Close" onclick={handleCloseDetail}>
+                                <lightning-icon icon-name="utility:close" alternative-text="close" size="small"></lightning-icon>
+                            </button>
+                            <h2 class="slds-text-heading_medium">Order Details</h2>
+                        </header>
+
+                        <div class="slds-modal__content slds-p-around_medium detail-modal-body">
+                            <template if:true={isDetailLoading}>
+                                <div class="slds-align_absolute-center slds-p-vertical_large">
+                                    <lightning-spinner alternative-text="Loading order details" size="medium"></lightning-spinner>
+                                </div>
+                            </template>
+
+                            <template if:true={selectedOrder}>
+                                <div class="detail-grid">
+                                    <div class="detail-item">
+                                        <label>Dealer/Distributor</label>
+                                        <p>{selectedOrder.dealerName}</p>
+                                    </div>
+                                    <div class="detail-item">
+                                        <label>Order By</label>
+                                        <p>{selectedOrder.activatedByName}</p>
+                                    </div>
+                                    <div class="detail-item">
+                                        <label>Order Start Date</label>
+                                        <p>{selectedOrder.formattedOrderStartDate}</p>
+                                    </div>
+                                    <div class="detail-item">
+                                        <label>Order Amount</label>
+                                        <p>{selectedOrder.formattedAmount}</p>
+                                    </div>
+                                    <div class="detail-item">
+                                        <label>Type</label>
+                                        <p>{selectedOrder.orderType}</p>
+                                    </div>
+                                    <div class="detail-item">
+                                        <label>Items</label>
+                                        <p>{selectedOrder.productCount}</p>
+                                    </div>
+                                    <div class="detail-item full-width">
+                                        <label>Billing Address</label>
+                                        <p>{selectedOrder.billingAddress}</p>
+                                    </div>
+                                    <div class="detail-item full-width">
+                                        <label>Shipping Address</label>
+                                        <p>{selectedOrder.shippingAddress}</p>
+                                    </div>
+                                    <div class="detail-item full-width">
+                                        <label>Order Description</label>
+                                        <p>{selectedOrder.description}</p>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </section>
+                <div class="slds-backdrop slds-backdrop_open"></div>
+            </template>
         </div>
-    </lightning-card>
+    </section>
 </template>

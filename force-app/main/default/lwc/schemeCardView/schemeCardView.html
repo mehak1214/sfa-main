@@ -1,0 +1,84 @@
+<template>
+    <div class="container">
+        <div class="main-card">
+            <template if:true={hasSchemes}>
+                <div class="cards-wrapper">
+                    <template for:each={schemes} for:item="scheme">
+                        <div key={scheme.schemeId} class="scheme-card" data-scheme-id={scheme.schemeId} onclick={handleSchemeClick}>
+                            <div class="card-content">
+                                <div class="scheme-info">
+                                    <h3 class="scheme-name">{scheme.schemeName}</h3>
+                                    <div class="scheme-percent">{scheme.schemeValue}%</div>
+                                    <p class="scheme-description">{scheme.description}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- View All Button as Grid Item -->
+                    <template if:true={hasMoreSchemes}>
+                        <div class="view-all-tile">
+                            <button class="view-all-button" onclick={handleViewAllSchemes}>
+                                View All Schemes
+                            </button>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <template if:true={noSchemesMessage}>
+                <div class="slds-p-vertical_large slds-text-align_center">
+                    <p class="no-schemes">No schemes available</p>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- All Schemes Modal -->
+    <template if:true={isModalOpen}>
+        <section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open slds-modal_large">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">All Schemes</h2>
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={handleCloseModal}>
+                        <lightning-icon icon-name="utility:close" alternative-text="close" size="small"></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                </header>
+
+                <div class="slds-modal__content slds-p-around_large">
+                    <template if:true={isDetailLoading}>
+                        <div class="slds-align_absolute-center slds-p-vertical_large">
+                            <lightning-spinner alternative-text="Loading all schemes" size="medium"></lightning-spinner>
+                        </div>
+                    </template>
+
+                    <template if:true={hasAllSchemes}>
+                        <div class="modal-schemes-grid">
+                            <template for:each={allSchemes} for:item="scheme">
+                                <div key={scheme.schemeId} class="modal-scheme-card" data-scheme-id={scheme.schemeId} onclick={handleSchemeClick}>
+                                    <div class="card-content">
+                                        <div class="scheme-info-row">
+                                            <h3 class="scheme-name-row">{scheme.schemeName}</h3>
+                                            <p class="scheme-description-row">{scheme.description}</p>
+                                        </div>
+                                        <div class="scheme-percent-row">{scheme.schemeValue}%</div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+
+                <footer class="slds-modal__footer">
+                    <lightning-button 
+                        label="Close" 
+                        onclick={handleCloseModal}
+                        variant="neutral">
+                    </lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

@@ -1,6 +1,7 @@
 import { LightningElement, api, wire } from 'lwc';
 import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import { refreshApex } from '@salesforce/apex';
 import checkInVisit from '@salesforce/apex/VisitController.checkInVisit';
 import checkOutVisit from '@salesforce/apex/VisitController.checkOutVisit';
 import getVisitDetail from '@salesforce/apex/VisitController.getVisitDetail';
@@ -25,9 +26,11 @@ export default class VisitDetail extends NavigationMixin(LightningElement) {
     // UI state for photo modal
     isPhotoModalOpen = false;
     isSchemesModalOpen = false;
+    isOrdersModalOpen = false;
     recentUploadNames = [];
     meetingNotes = '';
     meetingNotesSaving = false;
+    wiredVisitResult;
 
     @api
     get visit() {
@@ -84,6 +87,24 @@ export default class VisitDetail extends NavigationMixin(LightningElement) {
             });
     }
 
+    handleOrderCreated(event) {
+        const orderId = event.detail?.orderId;
+
+        this.showToast(
+            'Order Created',
+            'Order created successfully.',
+            'success'
+        );
+
+        // Close modal
+        this.showOrderPanel = false;
+
+        // Optional: refresh parent visit
+        this.refreshVisitData({ showErrorToast: false });
+    }
+
+
+
     refreshVisitData({ showErrorToast = true } = {}) {
         const visitId = this.currentVisitId;
         if (!visitId) {
@@ -91,19 +112,22 @@ export default class VisitDetail extends NavigationMixin(LightningElement) {
             return Promise.resolve();
         }
 
+        const visitRefreshPromise = this.wiredVisitResult
+            ? refreshApex(this.wiredVisitResult)
+            : getVisitDetail({ visitId }).then(visitData => {
+                if (!visitData) return;
+                this.visit = visitData;
+                this.meetingNotes = visitData?.Meeting_Notes__c || '';
+                this.setIsTodayFromVisit(visitData);
+                this.checkForVisitPhoto();
+                this.loadOutletPhoto();
+            });
+
         return Promise.all([
-            getVisitDetail({ visitId }),
+            visitRefreshPromise,
             getTodayAttendance()
         ])
-            .then(([visitData, att]) => {
-                if (visitData) {
-                    // Refresh local UI model immediately after check-in/check-out mutations.
-                    this.visit = visitData;
-                    this.meetingNotes = visitData?.Meeting_Notes__c || '';
-                    this.setIsTodayFromVisit(visitData);
-                    this.checkForVisitPhoto();
-                    this.loadOutletPhoto();
-                }
+            .then(([, att]) => {
                 this.dayStarted = !!att;
                 this.dayEnded = !!(att?.End_Time__c || att?.ibfsa__End_Time__c);
                 this.dispatchEvent(new CustomEvent('refresh'));
@@ -129,7 +153,9 @@ export default class VisitDetail extends NavigationMixin(LightningElement) {
     }
 
     @wire(getVisitDetail, { visitId: '$recordId' })
-    wiredVisit({ data, error }) {
+    wiredVisit(result) {
+        this.wiredVisitResult = result;
+        const { data, error } = result;
         if (data) {
             this.visit = data;
             this.meetingNotes = data?.Meeting_Notes__c || '';
@@ -370,7 +396,8 @@ export default class VisitDetail extends NavigationMixin(LightningElement) {
             this[NavigationMixin.Navigate]({
                 type: 'standard__navItemPage',
                 attributes: {
-                    apiName: 'Sales_Rep'
+                    apiName: 'ibfsa__Sales_Rep',
+                    
                 }
             });
             return;
@@ -446,6 +473,14 @@ export default class VisitDetail extends NavigationMixin(LightningElement) {
         this.isSchemesModalOpen = false;
     }
 
+    handleOpenOrdersModal() {
+        this.isOrdersModalOpen = true;
+    }
+
+    handleCloseOrdersModal() {
+        this.isOrdersModalOpen = false;
+    }
+
     get orderToggleLabel() {
         return this.showOrderPanel ? 'Hide Order' : 'Create Order';
     }
@@ -509,6 +544,20 @@ export default class VisitDetail extends NavigationMixin(LightningElement) {
                     visitId,
                     lat: pos.coords.latitude.toString(),
                     lon: pos.coords.longitude.toString()
+                })
+                .then(() => {
+                    // Optimistic local update so action buttons switch immediately.
+                    if (apexMethod === checkInVisit) {
+                        this.visit = {
+                            ...(this.visit || {}),
+                            ibfsa__Visit_Status__c: 'In Progress'
+                        };
+                    } else if (apexMethod === checkOutVisit) {
+                        this.visit = {
+                            ...(this.visit || {}),
+                            ibfsa__Visit_Status__c: 'Completed'
+                        };
+                    }
                 })
                 .then(() => this.refreshVisitData({ showErrorToast: false }))
                 .then(() => {

@@ -44,6 +44,16 @@
     border-color: #0d2e69;
 }
 
+.back-btn {
+    border: none;
+    background: #e4ebf8;
+    border-radius: 10px;
+    width: 34px;
+    height: 34px;
+    font-size: 18px;
+    color: #1b3c7b;
+}
+
 .card {
     background: #ffffff;
     border: 1px solid #dce5f2;

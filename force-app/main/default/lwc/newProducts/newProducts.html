@@ -1,0 +1,54 @@
+<template>
+    <lightning-card title="New Products" icon-name="standard:products">
+        <div class="slds-p-around_medium">
+            <!-- Loading Spinner -->
+            <template if:true={isLoading}>
+                <div class="slds-align_absolute-center slds-m-vertical_large">
+                    <lightning-spinner alternative-text="Loading" size="large"></lightning-spinner>
+                </div>
+            </template>
+
+            <!-- No Products Message -->
+            <template if:true={noProductsToDisplay}>
+                <div class="slds-text-align_center slds-p-vertical_large">
+                    <p class="slds-text-color_weak">No new products available.</p>
+                </div>
+            </template>
+
+            <!-- Products Grid -->
+            <template if:true={hasProducts}>
+                <div class="products-grid">
+                    <template for:each={products} for:item="product">
+                        <div key={product.productId} class="product-card slds-box" 
+                             onclick={handleProductClick} data-product-id={product.productId}>
+                            
+                            <!-- Product Image -->
+                            <div class="product-image-container">
+                                <template if:true={product.imageUrl}>
+                                    <img src={product.imageUrl} alt={product.productName} class="product-image" />
+                                </template>
+                                <template if:false={product.imageUrl}>
+                                    <div class="product-image-placeholder">
+                                        <lightning-icon icon-name="standard:product" size="large"></lightning-icon>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Product Name -->
+                            <div class="product-info">
+                                <h3 class="product-name">{product.productName}</h3>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- Error Message -->
+            <template if:true={errorMessage}>
+                <div class="slds-box slds-theme_alert-texture slds-theme_error slds-m-vertical_large">
+                    <p class="slds-m-0">{errorMessage}</p>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

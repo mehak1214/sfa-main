@@ -1,0 +1,174 @@
+<template>
+    <div class="container">
+        <div class="main-card">
+            <div class="cards-wrapper">
+                <template if:true={displayProducts}>
+                    <template for:each={displayProducts} for:item="product" for:index="index">
+                        <div key={product.Id} class={product.cardClass} data-product-id={product.Id}>
+                            <div class="card-content">
+                                <template if:true={product.isOverflow}>
+                                    <button class="slds-button slds-button_neutral slds-button_small" onclick={handleOpenModal} title="View all products">
+                                        View All
+                                    </button>
+                                </template>
+                                <template if:false={product.isOverflow}>
+                                    <div class="card-info">
+                                        <div class="card-image-container">
+                                            <template if:true={product.imageUrl}>
+                                                <img src={product.imageUrl} alt={product.Name} class="card-product-image">
+                                            </template>
+                                            <template if:false={product.imageUrl}>
+                                                <div class="no-card-image">
+                                                    <lightning-icon icon-name="standard:product" size="x-small"></lightning-icon>
+                                                </div>
+                                            </template>
+                                        </div>
+                                        <p class="card-product-name">{product.Name}</p>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </template>
+                
+                <template if:false={displayProducts}>
+                    <p class="no-products">No new products available</p>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <template if:true={isModalOpen}>
+        <section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open slds-modal_large" lwc:ref="productsModal">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">All New Products</h2>
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={handleCloseModal}>
+                        <lightning-icon icon-name="utility:close" alternative-text="close" size="small"></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                </header>
+                
+                <div class="slds-modal__content slds-p-around_large">
+                    <template if:true={allProducts}>
+                        <div class="slds-grid slds-wrap slds-grid_pull-padded">
+                            <template for:each={allProducts} for:item="product">
+                                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-p-horizontal_small slds-m-bottom_medium" key={product.Id}>
+                                    <article class="slds-card slds-card_boundary" data-product-id={product.Id}>
+                                        <div class="slds-card__header slds-has-flexi-truncate">
+                                            <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                                                <div class="slds-media__figure">
+                                                    <lightning-icon icon-name="standard:product" size="small"></lightning-icon>
+                                                </div>
+                                                <div class="slds-media__body">
+                                                    <h2 class="slds-card__header-title">
+                                                        <a href="javascript:void(0);" class="slds-card__header-link slds-text-link_reset">
+                                                            <span>{product.Name}</span>
+                                                        </a>
+                                                    </h2>
+                                                </div>
+                                            </header>
+                                        </div>
+                                        <div class="slds-card__body slds-card__body_inner">
+                                            <template if:true={product.imageUrl}>
+                                                <img src={product.imageUrl} alt={product.Name} class="card-product-image slds-m-bottom_small" style="width: 100%; height: auto; border-radius: 0.25rem;">
+                                            </template>
+                                            <dl class="slds-list_horizontal slds-wrap">
+                                                <template if:true={product.ProductCode}>
+                                                    <dt class="slds-item_label slds-text-color_weak slds-truncate" title="Code">Code</dt>
+                                                    <dd class="slds-item_detail slds-truncate">{product.ProductCode}</dd>
+                                                </template>
+                                                <template if:true={product.Family}>
+                                                    <dt class="slds-item_label slds-text-color_weak slds-truncate" title="Family">Family</dt>
+                                                    <dd class="slds-item_detail slds-truncate">{product.Family}</dd>
+                                                </template>
+                                                <template if:true={product.Description}>
+                                                    <dt class="slds-item_label slds-text-color_weak slds-truncate" title="Description">Description</dt>
+                                                    <dd class="slds-item_detail">{product.Description}</dd>
+                                                </template>
+                                            </dl>
+                                        </div>
+                                    </article>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+                
+                <footer class="slds-modal__footer">
+                    <button class="slds-button slds-button_neutral" onclick={handleCloseModal}>Close</button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!-- Product Detail Modal -->
+    <template if:true={isProductDetailModalOpen}>
+        <section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open" lwc:ref="detailModal">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">Product Details</h2>
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={handleCloseProductDetailModal}>
+                        <lightning-icon icon-name="utility:close" alternative-text="close" size="small"></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                </header>
+                
+                <div class="slds-modal__content slds-p-around_large">
+                    <template if:true={selectedProduct}>
+                        <article class="slds-card slds-card_boundary slds-m-bottom_large">
+                            <div class="slds-card__header slds-has-flexi-truncate">
+                                <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                                    <div class="slds-media__figure">
+                                        <lightning-icon icon-name="standard:product" size="medium"></lightning-icon>
+                                    </div>
+                                    <div class="slds-media__body">
+                                        <h2 class="slds-card__header-title">
+                                            <span class="detail-product-name">{selectedProduct.Name}</span>
+                                        </h2>
+                                    </div>
+                                </header>
+                            </div>
+                            
+                            <div class="slds-card__body slds-card__body_inner">
+                                <template if:true={selectedProduct.imageUrl}>
+                                    <img src={selectedProduct.imageUrl} alt={selectedProduct.Name} class="detail-product-image slds-m-bottom_medium" style="width: 100%; height: auto; border-radius: 0.25rem;">
+                                </template>
+                                <template if:false={selectedProduct.imageUrl}>
+                                    <div class="slds-box slds-p-around_medium slds-m-bottom_medium slds-text-align_center" style="background-color: #f3f3f3;">
+                                        <lightning-icon icon-name="standard:product" size="large" class="slds-m-bottom_small"></lightning-icon>
+                                        <p>No Image Available</p>
+                                    </div>
+                                </template>
+                                <dl class="slds-list_horizontal slds-wrap">
+                                    <template if:true={selectedProduct.ProductCode}>
+                                        <dt class="slds-item_label slds-text-color_weak" title="Code">Code</dt>
+                                        <dd class="slds-item_detail slds-m-bottom_medium">{selectedProduct.ProductCode}</dd>
+                                    </template>
+                                    <template if:true={selectedProduct.Family}>
+                                        <dt class="slds-item_label slds-text-color_weak" title="Family">Family</dt>
+                                        <dd class="slds-item_detail slds-m-bottom_medium">{selectedProduct.Family}</dd>
+                                    </template>
+                                </dl>
+                            </div>
+                        </article>
+                        
+                        <template if:true={selectedProduct.Description}>
+                            <div class="slds-box slds-p-around_medium">
+                                <h3 class="slds-text-heading_small slds-m-bottom_small">Description</h3>
+                                <p class="detail-product-description slds-text-body_regular">{selectedProduct.Description}</p>
+                            </div>
+                        </template>
+                    </template>
+                </div>
+                
+                <footer class="slds-modal__footer">
+                    <button class="slds-button slds-button_neutral" onclick={handleCloseProductDetailModal}>Close</button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

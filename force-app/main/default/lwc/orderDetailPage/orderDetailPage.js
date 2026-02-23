@@ -1,31 +1,41 @@
-import { LightningElement, wire } from 'lwc';
+import { LightningElement, api, wire } from 'lwc';
 import { CurrentPageReference } from 'lightning/navigation';
 import currencyCode from '@salesforce/i18n/currency';
 import getOrderDetail from '@salesforce/apex/OrdersByUserController.getOrderDetail';
 
 export default class OrderDetailPage extends LightningElement {
-    orderId;
+    _orderId;
     order;
     isLoading = true;
     errorMessage = '';
 
-    @wire(CurrentPageReference)
-    setCurrentPageReference(pageRef) {
-        const nextOrderId = pageRef?.state?.c__orderId;
-        if (nextOrderId && nextOrderId !== this.orderId) {
-            this.orderId = nextOrderId;
+    @api
+    get orderId() {
+        return this._orderId;
+    }
+    set orderId(value) {
+        if (value && value !== this._orderId) {
+            this._orderId = value;
             this.loadOrderDetail();
         }
     }
 
+    @wire(CurrentPageReference)
+    setCurrentPageReference(pageRef) {
+        const nextOrderId = pageRef?.state?.c__orderId;
+        if (nextOrderId && nextOrderId !== this._orderId) {
+            this.orderId = nextOrderId;
+        }
+    }
+
     connectedCallback() {
-        if (!this.orderId) {
+        if (!this._orderId) {
             this.isLoading = false;
         }
     }
 
     loadOrderDetail() {
-        if (!this.orderId) {
+        if (!this._orderId) {
             this.isLoading = false;
             this.errorMessage = 'Order id is missing from navigation.';
             return;
@@ -34,7 +44,7 @@ export default class OrderDetailPage extends LightningElement {
         this.isLoading = true;
         this.errorMessage = '';
 
-        getOrderDetail({ orderId: this.orderId })
+        getOrderDetail({ orderId: this._orderId })
             .then((result) => {
                 this.order = result;
                 this.isLoading = false;
@@ -106,6 +116,14 @@ export default class OrderDetailPage extends LightningElement {
 
     get description() {
         return this.order?.description || 'No description provided.';
+    }
+
+    get orderType() {
+        return this.order?.orderType || 'N/A';
+    }
+
+    get itemsCount() {
+        return this.order?.productCount || 0;
     }
 
     formatAddress(street, city, state, postalCode, country) {

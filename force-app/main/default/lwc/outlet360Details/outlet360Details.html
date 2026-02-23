@@ -1,11 +1,9 @@
 <template>
     <section class="page">
         <header class="head">
-            <button class="btn back" type="button" onclick={handleBack}>
-                <lightning-icon icon-name="utility:chevronleft" size="x-small"></lightning-icon>
-                <span>Back</span>
-            </button>
-            <h1>Outlet 360</h1>
+           <button class="back-btn" onclick={handleBack}>&larr;</button>
+                
+            
         </header>
 
         <template if:true={isLoading}>
@@ -22,7 +20,7 @@
                 <template if:true={hasOutletSubInfo}>
                     <div class="outlet-meta">
                         <template if:true={outletCode}>
-                            <span>Code: {outletCode}</span>
+                            <span>Outlet Code: {outletCode}</span>
                         </template>
                         <template if:true={outletStatus}>
                             <span>Status: {outletStatus}</span>

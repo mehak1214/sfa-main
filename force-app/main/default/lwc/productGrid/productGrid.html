@@ -1,0 +1,97 @@
+<template>
+    <lightning-card title="Products" icon-name="standard-product">
+        <template if:true={errorMessage}>
+            <div class="error-message">
+                <lightning-icon icon-name="utility-error" alternative-text="Error"></lightning-icon>
+                <span>{errorMessage}</span>
+            </div>
+        </template>
+
+        <template if:false={errorMessage}>
+            <!-- Product Grid - 3 Products -->
+            <div class="product-grid-container">
+                <div class="products-grid">
+                    <template for:each={displayedProducts} for:item="product">
+                        <div 
+                            key={product.Id} 
+                            class="product-tile"
+                            data-product-id={product.Id}
+                            onclick={handleProductClick}
+                            role="button"
+                            tabindex="0">
+                            <div class="tile-header">
+                                <h3 class="product-name">{product.Name}</h3>
+                            </div>
+                            <div class="tile-body">
+                                <p class="product-family">{product.Family}</p>
+                                <div class="percentage-display">
+                                    <span class="percentage-value">100%</span>
+                                </div>
+                            </div>
+                            <div class="tile-footer">
+                                <p class="product-description">{product.Description}</p>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Show More Link -->
+                <template if:true={hasMoreProducts}>
+                    <div class="show-more-container">
+                        <lightning-button-icon-stateful
+                            icon-name="utility-expand-alt"
+                            class="show-more-link"
+                            onclick={handleShowMore}
+                            variant="border">
+                            <span class="show-more-text">{moreProductsLabel}</span>
+                        </lightning-button-icon-stateful>
+                        <a href="javascript:void(0);" class="show-more-link-text" onclick={handleShowMore}>
+                            {moreProductsLabel}
+                        </a>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Modal for All Products -->
+            <template if:true={showModal}>
+                <div class="modal-overlay" onclick={handleCloseModal}></div>
+                <div class="modal-container">
+                    <div class="modal-header">
+                        <h2>All Products</h2>
+                        <lightning-button-icon
+                            icon-name="utility-close"
+                            alternative-text="Close"
+                            variant="border-filled"
+                            onclick={handleCloseModal}>
+                        </lightning-button-icon>
+                    </div>
+                    <div class="modal-body">
+                        <div class="all-products-grid">
+                            <template for:each={allProducts} for:item="product">
+                                <div 
+                                    key={product.Id} 
+                                    class="product-card"
+                                    data-product-id={product.Id}
+                                    onclick={handleProductClick}
+                                    role="button"
+                                    tabindex="0">
+                                    <div class="product-image-placeholder">
+                                        <lightning-icon 
+                                            icon-name="standard-product" 
+                                            size="large"
+                                            alternative-text="Product">
+                                        </lightning-icon>
+                                    </div>
+                                    <div class="product-info">
+                                        <h4 class="product-card-name">{product.Name}</h4>
+                                        <p class="product-card-family">{product.Family}</p>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </template>
+    </lightning-card>
+</template>

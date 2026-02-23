@@ -1,0 +1,43 @@
+<template>
+    <div class="tab-container">
+        <div class="tab-header">
+            <template for:each={tabs} for:item="tab">
+                <button 
+                    key={tab.id}
+                    class="tab-button {tab.isActive}"
+                    onclick={handleTabClick}
+                    data-tab={tab.id}
+                    type="button">
+                    {tab.label}
+                </button>
+            </template>
+        </div>
+        
+        <div class="tab-content">
+            <!-- Tab 1 Content -->
+            <div class="tab-content-panel {tab1IsActive}">
+                <slot name="tab-1"></slot>
+            </div>
+            
+            <!-- Tab 2 Content -->
+            <div class="tab-content-panel {tab2IsActive}">
+                <slot name="tab-2"></slot>
+            </div>
+            
+            <!-- Tab 3 Content -->
+            <div class="tab-content-panel {tab3IsActive}">
+                <slot name="tab-3"></slot>
+            </div>
+            
+            <!-- Tab 4 Content -->
+            <div class="tab-content-panel {tab4IsActive}">
+                <slot name="tab-4"></slot>
+            </div>
+            
+            <!-- Tab 5 Content -->
+            <div class="tab-content-panel {tab5IsActive}">
+                <slot name="tab-5"></slot>
+            </div>
+        </div>
+    </div>
+</template>

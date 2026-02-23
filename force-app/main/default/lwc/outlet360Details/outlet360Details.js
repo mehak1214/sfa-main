@@ -236,10 +236,11 @@ export default class Outlet360Details extends NavigationMixin(LightningElement) 
             // Continue with fallback navigation.
         }
 
+        // Navigate to the visit detail component using standard__component
         this[NavigationMixin.Navigate]({
-            type: 'standard__navItemPage',
+            type: 'standard__component',
             attributes: {
-                apiName: 'Sales_Rep'
+                componentName: 'c__visitDetailPage'
             }
         });
     }

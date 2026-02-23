@@ -1,0 +1,60 @@
+<template>
+    <div class="products-container">
+        <div class="header">
+            <h2>Products</h2>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div class="loading-container" if:true={isLoading}>
+            <lightning-spinner alternative-text="Loading" size="large"></lightning-spinner>
+        </div>
+
+        <!-- Error Message -->
+        <div class="error-message" if:true={errorMessage}>
+            <lightning-card>
+                <div slot="title">Error</div>
+                <p>{errorMessage}</p>
+            </lightning-card>
+        </div>
+
+        <!-- No Products Message -->
+        <div class="no-products-message" if:true={noProductsMessage}>
+            <lightning-card>
+                <p>No products available</p>
+            </lightning-card>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="products-grid" if:true={hasProducts}>
+            <template for:each={products} for:item="product">
+                <div key={product.productId} class="product-card" data-product-id={product.productId} onclick={handleProductClick}>
+                    <!-- Product Image -->
+                    <div class="product-image-container">
+                        <img if:true={product.imageUrl} 
+                             src={product.imageUrl} 
+                             alt={product.productName}
+                             class="product-image" />
+                        <div if:false={product.imageUrl} class="no-image">
+                            <lightning-icon icon-name="standard:product" size="small"></lightning-icon>
+                            <span>No Image</span>
+                        </div>
+                    </div>
+
+                    <!-- Product Info -->
+                    <div class="product-info">
+                        <h3 class="product-name">{product.productName}</h3>
+                        <p if:true={product.productCode} class="product-code">
+                            <strong>Code:</strong> {product.productCode}
+                        </p>
+                        <p if:true={product.family} class="product-family">
+                            <strong>Family:</strong> {product.family}
+                        </p>
+                        <p if:true={product.description} class="product-description">
+                            {product.description}
+                        </p>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+</template>
