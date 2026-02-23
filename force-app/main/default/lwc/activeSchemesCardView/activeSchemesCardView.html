@@ -1,0 +1,163 @@
+<template>
+    <div class="container">
+        <div class="main-card">
+            <div class="cards-wrapper">
+                <template if:true={displaySchemes}>
+                    <template for:each={displaySchemes} for:item="scheme" for:index="index">
+                        <div key={scheme.Id} class={scheme.cardClass} data-scheme-id={scheme.Id}>
+                            <div class="card-content">
+                                <template if:true={scheme.isOverflow}>
+                                    <button class="slds-button slds-button_neutral slds-button_small" onclick={handleOpenModal} title="View all schemes">
+                                        View All
+                                    </button>
+                                </template>
+                                <template if:false={scheme.isOverflow}>
+                                    <div class="card-info">
+                                        <p class="card-scheme-name">{scheme.SchemeName}</p>
+                                        <template if:true={scheme.Discount}>
+                                            <p class="card-scheme-discount">{scheme.Discount}%</p>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </template>
+                
+                <template if:false={displaySchemes}>
+                    <p class="no-schemes">No active schemes available</p>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <template if:true={isModalOpen}>
+        <section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open slds-modal_large" lwc:ref="schemesModal">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">All Active Schemes</h2>
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={handleCloseModal}>
+                        <lightning-icon icon-name="utility:close" alternative-text="close" size="small"></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                </header>
+                
+                <div class="slds-modal__content slds-p-around_large">
+                    <template if:true={allSchemes}>
+                        <div class="slds-grid slds-wrap slds-grid_pull-padded">
+                            <template for:each={allSchemes} for:item="scheme">
+                                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-p-horizontal_small slds-m-bottom_medium" key={scheme.Id}>
+                                    <article class="slds-card slds-card_boundary" data-scheme-id={scheme.Id}>
+                                        <div class="slds-card__header slds-has-flexi-truncate">
+                                            <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                                                <div class="slds-media__figure">
+                                                    <lightning-icon icon-name="standard:document" size="small"></lightning-icon>
+                                                </div>
+                                                <div class="slds-media__body">
+                                                    <h2 class="slds-card__header-title">
+                                                        <a href="javascript:void(0);" class="slds-card__header-link slds-text-link_reset">
+                                                            <span>{scheme.SchemeName}</span>
+                                                        </a>
+                                                    </h2>
+                                                </div>
+                                            </header>
+                                        </div>
+                                        <div class="slds-card__body slds-card__body_inner">
+                                            <dl class="slds-list_horizontal slds-wrap">
+                                                <template if:true={scheme.Discount}>
+                                                    <dt class="slds-item_label slds-text-color_weak slds-truncate" title="Discount">Discount</dt>
+                                                    <dd class="slds-item_detail slds-truncate">{scheme.Discount}%</dd>
+                                                </template>
+                                                <template if:true={scheme.StartDate}>
+                                                    <dt class="slds-item_label slds-text-color_weak slds-truncate" title="Start Date">Start Date</dt>
+                                                    <dd class="slds-item_detail slds-truncate">{scheme.StartDate}</dd>
+                                                </template>
+                                                <template if:true={scheme.EndDate}>
+                                                    <dt class="slds-item_label slds-text-color_weak slds-truncate" title="End Date">End Date</dt>
+                                                    <dd class="slds-item_detail slds-truncate">{scheme.EndDate}</dd>
+                                                </template>
+                                                <template if:true={scheme.Description}>
+                                                    <dt class="slds-item_label slds-text-color_weak slds-truncate" title="Description">Description</dt>
+                                                    <dd class="slds-item_detail">{scheme.Description}</dd>
+                                                </template>
+                                            </dl>
+                                        </div>
+                                    </article>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+                
+                <footer class="slds-modal__footer">
+                    <button class="slds-button slds-button_neutral" onclick={handleCloseModal}>Close</button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!-- Scheme Detail Modal -->
+    <template if:true={isSchemeDetailModalOpen}>
+        <section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">Scheme Details</h2>
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={handleCloseSchemeDetailModal}>
+                        <lightning-icon icon-name="utility:close" alternative-text="close" size="small"></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                </header>
+                
+                <div class="slds-modal__content slds-p-around_large">
+                    <template if:true={selectedScheme}>
+                        <article class="slds-card slds-card_boundary slds-m-bottom_large">
+                            <div class="slds-card__header slds-has-flexi-truncate">
+                                <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                                    <div class="slds-media__figure">
+                                        <lightning-icon icon-name="standard:document" size="medium"></lightning-icon>
+                                    </div>
+                                    <div class="slds-media__body">
+                                        <h2 class="slds-card__header-title">
+                                            <span class="detail-scheme-name">{selectedScheme.SchemeName}</span>
+                                        </h2>
+                                    </div>
+                                </header>
+                            </div>
+                            
+                            <div class="slds-card__body slds-card__body_inner">
+                                <dl class="slds-list_horizontal slds-wrap">
+                                    <template if:true={selectedScheme.Discount}>
+                                        <dt class="slds-item_label slds-text-color_weak" title="Discount">Discount</dt>
+                                        <dd class="slds-item_detail slds-m-bottom_medium">{selectedScheme.Discount}%</dd>
+                                    </template>
+                                    <template if:true={selectedScheme.StartDate}>
+                                        <dt class="slds-item_label slds-text-color_weak" title="Start Date">Start Date</dt>
+                                        <dd class="slds-item_detail slds-m-bottom_medium">{selectedScheme.StartDate}</dd>
+                                    </template>
+                                    <template if:true={selectedScheme.EndDate}>
+                                        <dt class="slds-item_label slds-text-color_weak" title="End Date">End Date</dt>
+                                        <dd class="slds-item_detail slds-m-bottom_medium">{selectedScheme.EndDate}</dd>
+                                    </template>
+                                </dl>
+                            </div>
+                        </article>
+                        
+                        <template if:true={selectedScheme.Description}>
+                            <div class="slds-box slds-p-around_medium">
+                                <h3 class="slds-text-heading_small slds-m-bottom_small">Description</h3>
+                                <p class="detail-scheme-description slds-text-body_regular">{selectedScheme.Description}</p>
+                            </div>
+                        </template>
+                    </template>
+                </div>
+                
+                <footer class="slds-modal__footer">
+                    <button class="slds-button slds-button_neutral" onclick={handleCloseSchemeDetailModal}>Close</button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

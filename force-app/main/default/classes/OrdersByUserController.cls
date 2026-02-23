@@ -29,6 +29,8 @@ public with sharing class OrdersByUserController {
         @AuraEnabled public Id orderId;
         @AuraEnabled public String orderNumber;
         @AuraEnabled public String status;
+        @AuraEnabled public String orderType;
+        @AuraEnabled public Integer productCount;
         @AuraEnabled public Decimal totalAmount;
         @AuraEnabled public Date orderDate;
         @AuraEnabled public String shippingStreet;
@@ -47,6 +49,7 @@ public with sharing class OrdersByUserController {
             this.orderId = order.Id;
             this.orderNumber = order.OrderNumber;
             this.status = order.Status;
+            this.orderType = order.Type;
             this.totalAmount = order.TotalAmount;
             this.orderDate = order.EffectiveDate;
             this.shippingStreet = order.ShippingStreet;
@@ -68,6 +71,7 @@ public with sharing class OrdersByUserController {
             for (OrderItem item : orderItems) {
                 this.products.add(new ProductWrapper(item));
             }
+            this.productCount = orderItems.size();
         }
     }
 
@@ -78,6 +82,8 @@ public with sharing class OrdersByUserController {
         @AuraEnabled public Id orderId;
         @AuraEnabled public String orderNumber;
         @AuraEnabled public String status;
+        @AuraEnabled public String orderType;
+        @AuraEnabled public Integer productCount;
         @AuraEnabled public Decimal totalAmount;
         @AuraEnabled public Date orderStartDate;
         @AuraEnabled public String dealerName;
@@ -98,6 +104,7 @@ public with sharing class OrdersByUserController {
             this.orderId = orderRecord.Id;
             this.orderNumber = orderRecord.OrderNumber;
             this.status = orderRecord.Status;
+            this.orderType = orderRecord.Type;
             this.totalAmount = orderRecord.TotalAmount;
             this.orderStartDate = orderRecord.EffectiveDate;
             this.description = orderRecord.Description;
@@ -145,6 +152,7 @@ public with sharing class OrdersByUserController {
                     Id,
                     OrderNumber,
                     Status,
+                    Type,
                     TotalAmount,
                     EffectiveDate,
                     ShippingStreet,
@@ -218,7 +226,7 @@ public with sharing class OrdersByUserController {
                 statusFilter = ' AND Status = :status';
             }
 
-            String query = 'SELECT Id, OrderNumber, Status, TotalAmount, EffectiveDate, ShippingStreet, ShippingCity, ' +
+            String query = 'SELECT Id, OrderNumber, Status, Type, TotalAmount, EffectiveDate, ShippingStreet, ShippingCity, ' +
                           'ShippingState, ShippingPostalCode, ShippingCountry, AccountId, Account.Name, ' +
                           'Account.Id, ActivatedById, ActivatedBy.Name ' +
                           'FROM Order ' +
@@ -280,6 +288,7 @@ public with sharing class OrdersByUserController {
                     Id,
                     OrderNumber,
                     Status,
+                    Type,
                     TotalAmount,
                     EffectiveDate,
                     Description,
@@ -300,10 +309,18 @@ public with sharing class OrdersByUserController {
                 LIMIT 1
             ];
 
-            return new OrderDetailWrapper(orderRecord);
+            OrderDetailWrapper detail = new OrderDetailWrapper(orderRecord);
+            detail.productCount = [
+                SELECT COUNT()
+                FROM OrderItem
+                WHERE OrderId = :orderId
+            ];
+
+            return detail;
         } catch (Exception e) {
             System.debug('Error fetching order detail: ' + e.getMessage());
             throw new AuraHandledException('Unable to fetch order detail: ' + e.getMessage());
         }
     }
+
 }
